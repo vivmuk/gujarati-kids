@@ -34,3 +34,5 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+# Generated assets live in git so the deployed app is self-contained.
+# Regenerate with `npm run pregen` if you delete them locally.

@@ -64,10 +64,10 @@ Based on **Stephen Krashen's Natural Approach**:
 - **Styling**: Tailwind CSS with custom animations
 - **Fonts**: Noto Sans Gujarati + Nunito
 - **AI Engine**: [Venice.ai API](https://venice.ai)
-  - **TTS**: `tts-kokoro` (af_sky voice, 0.85x speed for kids)
+  - **TTS**: `tts-xai-v1` (eve voice, `language: 'gu'` for proper Gujarati pronunciation)
   - **STT**: `openai/whisper-large-v3` (Gujarati language detection)
-  - **Chat**: `zai-org-glm-5-1` (bilingual tutor)
-  - **Image Gen**: `flux-2-max` (kid-friendly, safe mode)
+  - **Chat**: `minimax-m3` (bilingual tutor)
+  - **Image Gen**: `grok-imagine-image` (90s Indian textbook style, safe mode)
 - **Data**: 200+ curated Gujarati learning items
 
 ## 🚀 Getting Started
@@ -102,6 +102,13 @@ VENICE_BASE_URL=https://api.venice.ai/api/v1
 ### Run
 
 ```bash
+# Pre-generate all TTS audio + images (one-time, ~5 min with 4 parallel workers)
+VENICE_API_KEY=xxx npm run pregen
+
+# Pre-generate only audio or only images
+npm run pregen:audio
+npm run pregen:images
+
 # Development
 npm run dev
 
@@ -118,17 +125,26 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 src/
 ├── app/
 │   ├── api/
-│   │   ├── tts/route.ts        # Text-to-speech endpoint
+│   │   ├── tts/route.ts        # Text-to-speech endpoint (xAI)
 │   │   ├── transcribe/route.ts # Speech-to-text endpoint
-│   │   ├── image/route.ts      # Image generation endpoint
-│   │   └── chat/route.ts       # AI tutor chat endpoint
+│   │   ├── image/route.ts      # Image generation endpoint (grok-imagine)
+│   │   └── chat/route.ts       # AI tutor chat endpoint (with inline illustrations)
 │   ├── globals.css             # Custom animations & kid-friendly styles
 │   ├── layout.tsx              # Root layout with Gujarati fonts
 │   └── page.tsx                # Main app (all sections)
+├── components/                 # Section components: Alphabet, Words, Phrases, Stories, Quiz, Chat, Progress
 ├── data/
-│   └── gujarati.ts             # All lesson data (letters, words, phrases, stories, quiz generator)
-└── lib/
-    └── venice.ts               # Venice API client wrapper
+│   ├── gujarati.ts             # All lesson data (letters, words, phrases, stories, quiz generator)
+│   └── assets.ts               # Pre-generated audio/image path manifest
+├── lib/
+│   └── venice.ts               # Venice API client wrapper
+└── public/
+    ├── audio/                  # Pre-generated TTS audio (141 mp3 files)
+    └── images/gen/             # Pre-generated illustrations (141 webp files)
+
+scripts/
+├── pregenerate.cts             # One-shot TTS + image pre-generator
+└── pregen-images.cts           # Parallel image generator (4 workers for ~4x speedup)
 ```
 
 ## 🎨 Design Philosophy

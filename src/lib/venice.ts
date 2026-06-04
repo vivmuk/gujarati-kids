@@ -24,7 +24,8 @@ export async function veniceChat(messages: Array<{role: string; content: string}
 export async function veniceTTS(input: string, options: Record<string, unknown> = {}) {
   // Detect if input contains Gujarati characters to set language hint
   const hasGujarati = /[\u0A80-\u0AFF]/.test(input);
-  
+  const langHint = (options.language as string) || (hasGujarati ? 'gu' : 'en');
+
   const res = await fetch(`${VENICE_BASE_URL}/audio/speech`, {
     method: 'POST',
     headers: {
@@ -32,13 +33,15 @@ export async function veniceTTS(input: string, options: Record<string, unknown> 
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: options.model || 'tts-gemini-3-1-flash',
-      voice: options.voice || 'Aoede',
+      // xAI TTS is the canonical Gujarati voice on Venice —
+      // gemini flash returns 500s on Indic language hints, kokoro sounds thin.
+      model: options.model || 'tts-xai-v1',
+      voice: options.voice || 'eve',
       input,
       response_format: 'mp3',
-      speed: options.speed || 0.85,
-      // xAI supports ISO 639-1 language hints — critical for proper Gujarati pronunciation
-      ...(hasGujarati ? { language: 'gu' } : {}),
+      speed: options.speed || 0.9,
+      // ISO 639-1 language hint is critical for proper Gujarati pronunciation
+      language: langHint,
       ...options,
     }),
   });
@@ -63,6 +66,9 @@ export async function veniceTranscribe(audioBlob: Blob, options: Record<string, 
 }
 
 export async function veniceImageGenerate(prompt: string, options: Record<string, unknown> = {}) {
+  // 1990s Indian school textbook style — applied to every generated frame
+  const styledPrompt = `1990s Indian school textbook illustration style, hand-drawn watercolor look, warm earthy tones, simple clean lines, flat perspective, educational diagram aesthetic, muted colors on off-white paper background: ${prompt}`;
+
   const res = await fetch(`${VENICE_BASE_URL}/image/generate`, {
     method: 'POST',
     headers: {
@@ -70,16 +76,16 @@ export async function veniceImageGenerate(prompt: string, options: Record<string
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: options.model || 'flux-2-max',
-      prompt,
-      width: options.width || 512,
-      height: options.height || 512,
+      // grok-imagine for everything — consistent 90s textbook style across the app
+      model: options.model || 'grok-imagine-image',
+      prompt: styledPrompt,
+      aspect_ratio: options.aspect_ratio || '1:1',
       format: 'webp',
-      return_binary: true,
+      return_binary: false,
       safe_mode: true,
       ...options,
     }),
   });
   if (!res.ok) throw new Error(`Venice image error: ${res.status} ${await res.text()}`);
-  return res.arrayBuffer();
+  return res.json();
 }

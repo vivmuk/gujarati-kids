@@ -120,7 +120,7 @@ export default function GujaratiApp() {
   const renderContent = () => {
     switch (activeTab) {
       case 'home': return renderHome();
-      case 'alphabet': return <AlphabetSection />;
+      case 'alphabet': return <AlphabetSection onLetterLearned={markLetterLearned} />;
       case 'words': return <WordsSection wordsLearned={progress.wordsLearned} onWordLearned={markWordLearned} />;
       case 'phrases': return <PhrasesSection phrasesLearned={progress.phrasesLearned} onPhraseLearned={markPhraseLearned} />;
       case 'stories': return <StoriesSection />;

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { phrases, categoryMeta } from '@/data/gujarati';
 import { useSpeak } from './useSpeak';
 import { SpeakIcon } from './SpeakIcon';
+import { getPhraseImage, getPhraseAudio } from '@/data/assets';
 
 interface Props {
   phrasesLearned: string[];
@@ -50,15 +51,29 @@ export function PhrasesSection({ phrasesLearned, onPhraseLearned }: Props) {
           const id = `phrase-${phrase.gujarati}`;
           const isLearned = phrasesLearned.includes(phrase.gujarati);
           const isPlaying = currentlyPlaying === id;
+          // AI-generated illustration in 90s Indian textbook style
+          const imgPath = getPhraseImage(phrase.roman);
           return (
             <div key={i} className={`glass-card-strong p-4 ${isLearned ? 'border-emerald-200 bg-emerald-50/50' : ''}`}>
               <div className="flex items-start gap-3">
+                {imgPath && (
+                  <img
+                    src={imgPath}
+                    alt={phrase.english}
+                    className="w-20 h-20 rounded-xl object-cover flex-shrink-0 border-2 border-white shadow-sm"
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                  />
+                )}
                 <div className="flex-1 min-w-0">
                   <p className="text-xl font-black" style={{ fontFamily: 'var(--font-gujarati)' }}>{phrase.gujarati}</p>
                   <p className="text-sm text-gray-500 font-medium mt-1">{phrase.roman}</p>
                   <p className="text-sm font-bold text-gray-700 mt-0.5">{phrase.english}</p>
                 </div>
-                <button onClick={() => { speak(phrase.gujarati, id); if (!isLearned) onPhraseLearned(phrase.gujarati); }}
+                <button onClick={() => {
+                    const audioPath = getPhraseAudio(phrase.roman);
+                    speak(audioPath || phrase.gujarati, id);
+                    if (!isLearned) onPhraseLearned(phrase.gujarati);
+                  }}
                   className="speak-btn w-10 h-10 rounded-full flex items-center justify-center text-sm flex-shrink-0"
                   style={{ background: isPlaying ? 'var(--saffron-200)' : 'var(--gradient-saffron)', color: isPlaying ? 'var(--saffron-700)' : 'white' }}>
                   <SpeakIcon id={id} currentlyPlaying={currentlyPlaying} ttsLoading={ttsLoading} />

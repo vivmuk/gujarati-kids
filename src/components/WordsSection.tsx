@@ -3,15 +3,7 @@ import { useState } from 'react';
 import { words, categoryMeta, type WordItem } from '@/data/gujarati';
 import { useSpeak } from './useSpeak';
 import { SpeakIcon } from './SpeakIcon';
-
-const wordImages: Record<string, string> = {
-  'Cow': '/images/cow.webp', 'Cat': '/images/cat.webp', 'Dog': '/images/dog.webp',
-  'Mango': '/images/mango.webp', 'Banana': '/images/banana.webp', 'Apple': '/images/apple.webp',
-  'Red': '/images/red.webp', 'Blue': '/images/blue.webp', 'Green': '/images/green.webp',
-  'Hand': '/images/hand.webp', 'Eye': '/images/eye.webp', 'Mother': '/images/mother.webp',
-  'Father': '/images/father.webp', 'Rice': '/images/rice.webp', 'Water': '/images/water.webp',
-  'Tree': '/images/tree.webp', 'Sun': '/images/sun.webp', 'Moon': '/images/moon.webp',
-};
+import { getWordImage, getWordAudio } from '@/data/assets';
 
 const categoryImages: Record<string, string> = {
   animal: '/images/animal.webp', fruit: '/images/fruit.webp', color: '/images/color.webp',
@@ -66,14 +58,26 @@ export function WordsSection({ wordsLearned, onWordLearned }: Props) {
           const isLearned = wordsLearned.includes(word.gujarati);
           const isPlaying = currentlyPlaying === id;
           const meta = categoryMeta[word.category];
+          // Use the AI-generated illustration from grok-imagine (90s Indian textbook style)
+          const imgPath = getWordImage(word.roman);
           return (
             <div key={i} className={`word-card ${isLearned ? 'learned' : ''} p-3.5`}>
-              {wordImages[word.english] && (
-                <img src={wordImages[word.english]} alt={word.english} className="w-full h-20 object-cover rounded-lg mb-2" />
+              {imgPath && (
+                <img
+                  src={imgPath}
+                  alt={word.english}
+                  className="w-full h-20 object-cover rounded-lg mb-2"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                />
               )}
               <div className="flex items-start justify-between mb-2">
                 <p className="text-xl font-black leading-tight" style={{ fontFamily: 'var(--font-gujarati)' }}>{word.gujarati}</p>
-                <button onClick={() => { speak(word.gujarati, id); onWordLearned(word.gujarati); }}
+                <button onClick={() => {
+                    // Use pre-generated audio if available — instant playback, no API call
+                    const audioPath = getWordAudio(word.roman);
+                    speak(audioPath || word.gujarati, id);
+                    onWordLearned(word.gujarati);
+                  }}
                   className="speak-btn w-8 h-8 rounded-full flex items-center justify-center text-xs"
                   style={{ background: isPlaying ? 'var(--saffron-200)' : `${meta?.color || '#FFA63D'}18`, color: meta?.color || '#FFA63D' }}>
                   <SpeakIcon id={id} currentlyPlaying={currentlyPlaying} ttsLoading={ttsLoading} />

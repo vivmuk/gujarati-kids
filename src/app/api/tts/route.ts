@@ -15,11 +15,11 @@ export async function POST(req: NextRequest) {
     const langHint = language || (hasGujarati ? 'gu' : undefined);
 
     const body: Record<string, unknown> = {
-      model: model || 'tts-gemini-3-1-flash',
-      voice: voice || 'Aoede',
+      model: model || 'tts-xai-v1',
+      voice: voice || 'eve',
       input: text,
       response_format: 'mp3',
-      speed: speed || 0.85,
+      speed: speed || 0.9,
     };
     // xAI supports ISO 639-1 language hints — critical for Gujarati pronunciation
     if (langHint) body.language = langHint;

@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "pregen": "tsx scripts/pregenerate.cts",
+    "pregen:audio": "tsx scripts/pregenerate.cts --audio",
+    "pregen:images": "tsx scripts/pregenerate.cts --images"
   },
   "dependencies": {
     "next": "16.2.7",
@@ -20,7 +23,10 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.7",
+    "sharp": "^0.34.5",
     "tailwindcss": "^4",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.22.4",
     "typescript": "^5"
   }
 }

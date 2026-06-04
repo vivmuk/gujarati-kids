@@ -17,10 +17,9 @@ export async function POST(req: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'flux-2-max',
-        prompt: `Kid-friendly educational illustration, cute cartoon style, bright colors, simple background: ${prompt}`,
-        width: 512,
-        height: 512,
+        model: 'grok-imagine-image',
+        prompt: `1990s Indian school textbook illustration style, hand-drawn watercolor look, warm earthy tones, simple clean lines, flat perspective, educational diagram aesthetic, muted colors on off-white paper background: ${prompt}`,
+        aspect_ratio: '1:1',
         format: 'webp',
         return_binary: false,
         safe_mode: true,

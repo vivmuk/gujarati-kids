@@ -1,12 +1,23 @@
 'use client';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { useSpeak } from './useSpeak';
 import { SpeakIcon } from './SpeakIcon';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
+  image?: string | null; // base64 data URL from grok-imagine
+  imageLoading?: boolean; // shows shimmer while the image is being generated
 }
+
+const IMAGE_LOADING_PLACEHOLDER =
+  'data:image/svg+xml;utf8,' +
+  encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+      <rect width="200" height="200" fill="#fef3c7"/>
+      <text x="50%" y="50%" text-anchor="middle" dy=".3em" font-family="sans-serif" font-size="14" fill="#92400e">🎨 drawing...</text>
+    </svg>`
+  );
 
 export function ChatSection() {
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -15,31 +26,67 @@ export function ChatSection() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { speak, currentlyPlaying, ttsLoading } = useSpeak();
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const [isRecording, setIsRecording] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
 
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  // Smooth scroll: useLayoutEffect fires synchronously after DOM mutation but before paint,
+  // so the new message is in the DOM when we measure its position. Wrapping in rAF waits one
+  // extra frame for nested flex children (image, etc.) to fully lay out.
+  useLayoutEffect(() => {
+    if (!chatEndRef.current) return;
+    const id = requestAnimationFrame(() => {
+      chatEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    });
+    return () => cancelAnimationFrame(id);
   }, [messages]);
+
+  // Detect when the user manually scrolls up — don't yank them back down while reading
+  const [autoScroll, setAutoScroll] = useState(true);
+  const onMessagesScroll = () => {
+    const el = messagesContainerRef.current;
+    if (!el) return;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    setAutoScroll(distanceFromBottom < 80);
+  };
+  useLayoutEffect(() => {
+    if (autoScroll && chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
+  }, [messages, autoScroll]);
 
   const sendMessage = async () => {
     const text = input.trim();
     if (!text || isLoading) return;
     setInput('');
+    setAutoScroll(true); // re-engage autoscroll on new send
     const userMsg: ChatMessage = { role: 'user', content: text };
     setMessages(prev => [...prev, userMsg]);
     setIsLoading(true);
+
+    // Build context for the LLM — last 6 messages, plain text
+    const context = messages.slice(-6).map(m => `${m.role}: ${m.content}`).join('\n');
+
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text, context: messages.slice(-6).map(m => `${m.role}: ${m.content}`).join('\n') }),
+        body: JSON.stringify({ message: text, context }),
       });
       if (!res.ok) throw new Error('Chat error');
       const data = await res.json();
-      const assistantMsg: ChatMessage = { role: 'assistant', content: data.content || data.message || 'Sorry, I couldn\'t understand that.' };
-      setMessages(prev => [...prev, assistantMsg]);
+
+      // Add the text reply immediately with an imageLoading slot for the illustration
+      setMessages(prev => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: data.reply || 'Sorry, I couldn\'t understand that.',
+          image: data.image || null,
+          imageLoading: data.image === undefined ? false : !data.image, // only show shimmer if image was attempted
+        },
+      ]);
     } catch (err) {
       setMessages(prev => [...prev, { role: 'assistant', content: 'Oops! Something went wrong. Try again? 🙏' }]);
     } finally {
@@ -99,8 +146,13 @@ export function ChatSection() {
         </div>
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-2 space-y-3">
+      {/* Messages — scroll-smooth on the container, plus rAF scrollIntoView for safety */}
+      <div
+        ref={messagesContainerRef}
+        onScroll={onMessagesScroll}
+        className="flex-1 overflow-y-auto px-4 py-2 space-y-3 chat-scroll"
+        style={{ scrollBehavior: 'smooth', WebkitOverflowScrolling: 'touch' }}
+      >
         {messages.map((msg, i) => {
           const isUser = msg.role === 'user';
           const id = `chat-${i}`;
@@ -109,6 +161,27 @@ export function ChatSection() {
               <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 ${isUser ? 'text-white rounded-br-md' : 'glass-card rounded-bl-md'}`}
                 style={isUser ? { background: 'var(--gradient-saffron)' } : {}}>
                 <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+
+                {/* Generated illustration from grok-imagine — 90s Indian textbook style */}
+                {!isUser && (msg.image || msg.imageLoading) && (
+                  <div className="mt-2 rounded-xl overflow-hidden border-2 border-amber-200 bg-amber-50">
+                    {msg.image ? (
+                      <img
+                        src={msg.image.startsWith('data:') ? msg.image : `data:image/webp;base64,${msg.image}`}
+                        alt="Guju's illustration"
+                        className="w-full h-auto object-cover"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <img
+                        src={IMAGE_LOADING_PLACEHOLDER}
+                        alt="drawing..."
+                        className="w-full h-32 object-cover animate-pulse"
+                      />
+                    )}
+                  </div>
+                )}
+
                 {!isUser && (
                   <button onClick={() => speak(msg.content, id)} className="mt-1 text-xs opacity-60 hover:opacity-100 transition-opacity">
                     <SpeakIcon id={id} currentlyPlaying={currentlyPlaying} ttsLoading={ttsLoading} /> Listen
