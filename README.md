@@ -1,36 +1,150 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ગુજરાતી શીખો — Learn Gujarati for Kids 🪷
 
-## Getting Started
+A beautiful, interactive web app for kids (ages 4–12) to learn Gujarati using AI-powered **speech**, **images**, and **conversation**. Built on **Krashen's Comprehensible Input / Natural Approach** methodology — listen first, understand through context, then speak. No pressure, just fun! 🎉
 
-First, run the development server:
+![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?logo=typescript)
+![Venice AI](https://img.shields.io/badge/Powered%20by-Venice%20AI-orange)
+![License](https://img.shields.io/badge/License-MIT-green)
+
+## ✨ Features
+
+### 🔤 Alphabet Learning
+- **12 Swar (Vowels)** and **34+ Vyanjan (Consonants)** with audio pronunciation
+- Each letter has an example word with Gujarati, romanization, and English meaning
+- Tap any letter to hear it spoken aloud via Venice AI TTS
+
+### 📚 Vocabulary Builder
+- **70+ words** across 8 categories: Animals 🦁, Fruits 🍎, Colors 🎨, Body Parts 🤚, Family 👨‍👩‍👧‍👦, Food 🍛, Nature 🌿, Numbers 🔢
+- Color-coded category badges for easy navigation
+- Audio pronunciation for every word
+
+### 💬 Phrase Practice
+- **20+ essential phrases**: Greetings, Questions, Daily Use, Polite Expressions, Emotions
+- **3 difficulty levels** (i, i+1, i+2) based on Comprehensible Input theory
+- Listen & repeat approach — hear first, then speak
+
+### 📖 Interactive Stories
+- **3 beautifully written bilingual stories** with line-by-line audio
+- Comprehensible Input stories: understand Gujarati from context
+- Play full story or tap individual lines
+
+### 🎯 Quiz Game
+- Dynamic quiz generator for Letters, Words, and Phrases
+- **3 difficulty levels** with randomized questions
+- Confetti animation on good scores! 🎊
+- Track stars earned across sessions
+
+### 🤖 ગુજુ (Guju) AI Tutor
+- Chat with Guju, your friendly Gujarati-speaking AI tutor
+- **Voice input**: Press & hold the mic button to speak in Gujarati or English
+- **Voice output**: Tap 🔊 to hear Guju's responses
+- Learn about culture: Navratri, Uttarayan, Dhokla, Garba, and more
+- Quick prompt buttons for common questions
+
+### ⭐ Progress Tracker
+- Track letters, words, phrases, and stories learned
+- Earn badges as you progress: 🚀 → 🌱 → 🎯 → 🌟 → 🏆
+- Quiz accuracy stats
+- Progress persists in localStorage
+
+## 🧠 Learning Method
+
+Based on **Stephen Krashen's Natural Approach**:
+
+1. **Comprehensible Input (i+1)**: Content is slightly above current level
+2. **Low Anxiety**: No penalty for mistakes — gentle correction by repeating the right way
+3. **Meaningful Context**: Learn through stories, cultural references, and real conversations
+4. **Listening First**: Hear sounds before attempting to speak (audio-first design)
+5. **Play-Based**: Quizzes, animations, and achievements keep kids engaged
+
+## 🛠️ Tech Stack
+
+- **Framework**: Next.js 16 (App Router, TypeScript)
+- **Styling**: Tailwind CSS with custom animations
+- **Fonts**: Noto Sans Gujarati + Nunito
+- **AI Engine**: [Venice.ai API](https://venice.ai)
+  - **TTS**: `tts-kokoro` (af_sky voice, 0.85x speed for kids)
+  - **STT**: `openai/whisper-large-v3` (Gujarati language detection)
+  - **Chat**: `zai-org-glm-5-1` (bilingual tutor)
+  - **Image Gen**: `flux-2-max` (kid-friendly, safe mode)
+- **Data**: 200+ curated Gujarati learning items
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Node.js 18+
+- A [Venice.ai](https://venice.ai) API key
+
+### Installation
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# Clone the repo
+git clone https://github.com/vivmuk/gujarati-kids.git
+cd gujarati-kids
+
+# Install dependencies
+npm install
+
+# Set up environment
+cp .env.example .env.local
+# Edit .env.local and add your Venice API key
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Environment Variables
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```env
+VENICE_API_KEY=your_venice_api_key_here
+VENICE_BASE_URL=https://api.venice.ai/api/v1
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Run
 
-## Learn More
+```bash
+# Development
+npm run dev
 
-To learn more about Next.js, take a look at the following resources:
+# Production build
+npm run build
+npm start
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 📁 Project Structure
 
-## Deploy on Vercel
+```
+src/
+├── app/
+│   ├── api/
+│   │   ├── tts/route.ts        # Text-to-speech endpoint
+│   │   ├── transcribe/route.ts # Speech-to-text endpoint
+│   │   ├── image/route.ts      # Image generation endpoint
+│   │   └── chat/route.ts       # AI tutor chat endpoint
+│   ├── globals.css             # Custom animations & kid-friendly styles
+│   ├── layout.tsx              # Root layout with Gujarati fonts
+│   └── page.tsx                # Main app (all sections)
+├── data/
+│   └── gujarati.ts             # All lesson data (letters, words, phrases, stories, quiz generator)
+└── lib/
+    └── venice.ts               # Venice API client wrapper
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🎨 Design Philosophy
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Warm, saffron-inspired color palette** — reflecting Gujarati culture
+- **Large tap targets** — designed for little fingers
+- **Smooth animations** — float, bounce, sparkle, slide-up
+- **Audio-first** — every item is listenable, reducing reading pressure
+- **Visual feedback** — speaking indicator, progress bars, confetti rewards
+- **Responsive** — works on phones, tablets, and desktops
+
+## 📄 License
+
+MIT — feel free to use this for your own language learning projects!
+
+---
+
+**આવજો! ગુજરાતી શીખો!** 🙏  
+*Come! Learn Gujarati!*
