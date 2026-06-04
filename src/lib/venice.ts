@@ -22,6 +22,9 @@ export async function veniceChat(messages: Array<{role: string; content: string}
 }
 
 export async function veniceTTS(input: string, options: Record<string, unknown> = {}) {
+  // Detect if input contains Gujarati characters to set language hint
+  const hasGujarati = /[\u0A80-\u0AFF]/.test(input);
+  
   const res = await fetch(`${VENICE_BASE_URL}/audio/speech`, {
     method: 'POST',
     headers: {
@@ -29,11 +32,13 @@ export async function veniceTTS(input: string, options: Record<string, unknown> 
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: options.model || 'tts-kokoro',
-      voice: options.voice || 'af_sky',
+      model: options.model || 'tts-xai-v1',
+      voice: options.voice || 'ara',
       input,
       response_format: 'mp3',
       speed: options.speed || 0.85,
+      // xAI supports ISO 639-1 language hints — critical for proper Gujarati pronunciation
+      ...(hasGujarati ? { language: 'gu' } : {}),
       ...options,
     }),
   });

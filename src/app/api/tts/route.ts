@@ -4,11 +4,25 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   try {
-    const { text, model, voice, speed } = await req.json();
+    const { text, model, voice, speed, language } = await req.json();
     if (!text?.trim()) return NextResponse.json({ error: 'Text required' }, { status: 400 });
 
     const VENICE_API_KEY = process.env.VENICE_API_KEY;
     const VENICE_BASE_URL = process.env.VENICE_BASE_URL || 'https://api.venice.ai/api/v1';
+
+    // Auto-detect Gujarati text to set language hint for proper pronunciation
+    const hasGujarati = /[\u0A80-\u0AFF]/.test(text);
+    const langHint = language || (hasGujarati ? 'gu' : undefined);
+
+    const body: Record<string, unknown> = {
+      model: model || 'tts-xai-v1',
+      voice: voice || 'ara',
+      input: text,
+      response_format: 'mp3',
+      speed: speed || 0.85,
+    };
+    // xAI supports ISO 639-1 language hints — critical for Gujarati pronunciation
+    if (langHint) body.language = langHint;
 
     const res = await fetch(`${VENICE_BASE_URL}/audio/speech`, {
       method: 'POST',
@@ -16,13 +30,7 @@ export async function POST(req: NextRequest) {
         'Authorization': `Bearer ${VENICE_API_KEY}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        model: model || 'tts-kokoro',
-        voice: voice || 'af_sky',
-        input: text,
-        response_format: 'mp3',
-        speed: speed || 0.85,
-      }),
+      body: JSON.stringify(body),
     });
 
     if (!res.ok) {

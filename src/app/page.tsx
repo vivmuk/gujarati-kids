@@ -78,7 +78,7 @@ export default function GujaratiKidsApp() {
       const res = await fetch('/api/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, model: 'tts-kokoro', voice: 'af_sky', speed: 0.8 }),
+        body: JSON.stringify({ text, model: 'tts-xai-v1', voice: 'ara', speed: 0.85 }),
       });
       if (!res.ok) throw new Error('TTS failed');
       const blob = await res.blob();
