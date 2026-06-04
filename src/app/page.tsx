@@ -31,6 +31,43 @@ const NAV_ITEMS: Array<{ id: TabId; label: string; icon: string; img?: string }>
   { id: 'progress', label: 'Progress', icon: '⭐', img: '/images/progress.webp' },
 ];
 
+// ============ WORD IMAGES ============
+const wordImages: Record<string, string> = {
+  'Cow': '/images/cow.webp', 'Cat': '/images/cat.webp', 'Dog': '/images/dog.webp',
+  'Elephant': '/images/elephant.webp', 'Lion': '/images/lion.webp', 'Monkey': '/images/monkey.webp',
+  'Peacock': '/images/peacock.webp', 'Fish': '/images/fish.webp', 'Bird': '/images/bird.webp', 'Donkey': '/images/donkey.webp',
+  'Apple': '/images/apple.webp', 'Banana': '/images/banana.webp', 'Mango': '/images/mango.webp',
+  'Grapes': '/images/grapes.webp', 'Coconut': '/images/coconut.webp', 'Orange': '/images/orange-fruit.webp',
+  'Papaya': '/images/fruit.webp', 'Pomegranate': '/images/fruit.webp',
+  'Mother': '/images/mother.webp', 'Father': '/images/father.webp', 'Sister': '/images/family.webp', 'Brother': '/images/family.webp',
+  'Grandmother': '/images/family.webp', 'Grandfather': '/images/family.webp',
+  'Hand': '/images/body.webp', 'Foot': '/images/body.webp', 'Eye': '/images/body.webp', 'Nose': '/images/body.webp',
+  'Ear': '/images/body.webp', 'Mouth': '/images/body.webp',
+  'Bread': '/images/rotli.webp', 'Lentils': '/images/food.webp', 'Rice': '/images/rice.webp',
+  'Yogurt': '/images/food.webp', 'Ghee': '/images/food.webp', 'Tea': '/images/tea.webp', 'Milk': '/images/food.webp',
+  'Sun': '/images/sun.webp', 'Moon': '/images/moon.webp', 'Stars': '/images/nature.webp',
+  'Cloud': '/images/nature.webp', 'Water': '/images/nature.webp', 'Fire': '/images/nature.webp', 'Earth': '/images/nature.webp',
+  'Red': '/images/color.webp', 'Blue': '/images/color.webp', 'Green': '/images/color.webp', 'Yellow': '/images/color.webp',
+  'White': '/images/color.webp', 'Black': '/images/color.webp', 'Purple': '/images/color.webp',
+};
+
+const storyCoverImages: Record<string, string> = {
+  'lion-mouse': '/images/lion.webp',
+  'hungry-cat': '/images/cat.webp',
+  'sun-moon': '/images/sun.webp',
+};
+
+// ============ TTS SPEAK ICON HELPER ============
+function SpeakIcon({ id, currentlyPlaying, ttsLoading }: { id: string; currentlyPlaying: string | null; ttsLoading: string | null }) {
+  if (ttsLoading === id) {
+    return <span className="animate-pulse inline-block">⏳</span>;
+  }
+  if (currentlyPlaying === id) {
+    return <>⏸</>;
+  }
+  return <>🔊</>;
+}
+
 // ============ CONFETTI ============
 function Confetti() {
   const colors = ['#FFA63D', '#F43F5E', '#8B5CF6', '#0EA5E9', '#10B981', '#FBBF24'];
@@ -67,6 +104,9 @@ export default function GujaratiKidsApp() {
   const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [ttsLoading, setTtsLoading] = useState<string | null>(null);
+  const [storyVideo, setStoryVideo] = useState<string | null>(null);
+  const [videoLoading, setVideoLoading] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
@@ -88,6 +128,7 @@ export default function GujaratiKidsApp() {
       return;
     }
     try {
+      setTtsLoading(id);
       setCurrentlyPlaying(id);
       const res = await fetch('/api/tts', {
         method: 'POST',
@@ -102,9 +143,11 @@ export default function GujaratiKidsApp() {
       audio.onended = () => { setCurrentlyPlaying(null); URL.revokeObjectURL(url); };
       audio.onerror = () => { setCurrentlyPlaying(null); };
       audio.play();
+      setTtsLoading(null);
     } catch (err) {
       console.error('TTS error:', err);
       setCurrentlyPlaying(null);
+      setTtsLoading(null);
     }
   }, [currentlyPlaying]);
 
@@ -184,7 +227,7 @@ export default function GujaratiKidsApp() {
                   <p className="text-sm text-gray-500 font-medium">{w.roman} • {w.english}</p>
                 </div>
                 <button onClick={() => speak(w.gujarati, `home-word`)} className="speak-btn w-12 h-12 rounded-full flex items-center justify-center text-white text-lg" style={{ background: 'var(--gradient-saffron)' }}>
-                  {currentlyPlaying === `home-word` ? '⏸' : '🔊'}
+                  <SpeakIcon id="home-word" currentlyPlaying={currentlyPlaying} ttsLoading={ttsLoading} />
                 </button>
               </div>
             );
@@ -298,12 +341,15 @@ export default function GujaratiKidsApp() {
             const meta = categoryMeta[word.category];
             return (
               <div key={i} className={`word-card ${isLearned ? 'learned' : ''} p-3.5`}>
+                {wordImages[word.english] && (
+                  <img src={wordImages[word.english]} alt={word.english} className="w-full h-20 object-cover rounded-lg mb-2" />
+                )}
                 <div className="flex items-start justify-between mb-2">
                   <p className="text-xl font-black leading-tight" style={{ fontFamily: 'var(--font-gujarati)' }}>{word.gujarati}</p>
                   <button onClick={() => { speak(word.gujarati, id); markWordLearned(word.gujarati); }}
                     className="speak-btn w-8 h-8 rounded-full flex items-center justify-center text-xs"
                     style={{ background: isPlaying ? 'var(--saffron-200)' : `${meta?.color || '#FFA63D'}18`, color: meta?.color || '#FFA63D' }}>
-                    {isPlaying ? '⏸' : '🔊'}
+                    <SpeakIcon id={id} currentlyPlaying={currentlyPlaying} ttsLoading={ttsLoading} />
                   </button>
                 </div>
                 <p className="text-xs text-gray-500 font-semibold">{word.roman}</p>
@@ -369,7 +415,7 @@ export default function GujaratiKidsApp() {
                   <button onClick={() => { speak(phrase.gujarati, id); if (!isLearned) setProgress(p => ({ ...p, phrasesLearned: [...p.phrasesLearned, phrase.gujarati] })); }}
                     className="speak-btn w-10 h-10 rounded-full flex items-center justify-center text-sm flex-shrink-0"
                     style={{ background: isPlaying ? 'var(--saffron-200)' : 'var(--gradient-saffron)', color: isPlaying ? 'var(--saffron-700)' : 'white' }}>
-                    {isPlaying ? '⏸' : '🔊'}
+                    <SpeakIcon id={id} currentlyPlaying={currentlyPlaying} ttsLoading={ttsLoading} />
                   </button>
                 </div>
               </div>
@@ -395,7 +441,7 @@ export default function GujaratiKidsApp() {
               <p className="text-2xl font-black" style={{ fontFamily: 'var(--font-gujarati)' }}>{activeStory.titleGujarati}</p>
               <p className="text-white/70 text-sm font-medium">{activeStory.titleEnglish}</p>
             </div>
-            <img src="/images/story.webp" alt="" className="absolute right-0 bottom-0 w-20 h-20 object-cover opacity-20" />
+            <img src={storyCoverImages[activeStory.id] || '/images/story.webp'} alt="" className="absolute right-0 bottom-0 w-20 h-20 object-cover opacity-20" />
           </div>
 
           <div className="space-y-3 stagger-children">
@@ -417,7 +463,7 @@ export default function GujaratiKidsApp() {
                     <button onClick={() => speak(line.gujarati, id)}
                       className="speak-btn w-9 h-9 rounded-full flex items-center justify-center text-sm flex-shrink-0"
                       style={{ background: isPlaying ? 'var(--saffron-200)' : 'var(--gradient-saffron)', color: isPlaying ? 'var(--saffron-700)' : 'white' }}>
-                      {isPlaying ? '⏸' : '🔊'}
+                      <SpeakIcon id={id} currentlyPlaying={currentlyPlaying} ttsLoading={ttsLoading} />
                     </button>
                   </div>
                 </div>
@@ -428,8 +474,50 @@ export default function GujaratiKidsApp() {
           <button onClick={() => { speak(activeStory.lines.map(l => l.gujarati).join('. '), `story-${activeStory.id}-all`); setProgress(p => ({ ...p, storiesRead: [...new Set([...p.storiesRead, activeStory.id])] })); }}
             className="w-full mt-5 py-3.5 rounded-2xl font-bold text-white text-base"
             style={{ background: 'var(--gradient-warm)' }}>
-            🔊 Listen to Full Story
+            <SpeakIcon id={`story-${activeStory.id}-all`} currentlyPlaying={currentlyPlaying} ttsLoading={ttsLoading} /> Listen to Full Story
           </button>
+
+          {/* Animate Story Button */}
+          <button
+            onClick={async () => {
+              const imageUrl = storyCoverImages[activeStory.id] || '/images/story.webp';
+              const prompt = `Animated story: ${activeStory.titleEnglish} - ${activeStory.titleGujarati}`;
+              setVideoLoading(true);
+              setStoryVideo(null);
+              try {
+                const res = await fetch('/api/video', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ imageUrl, prompt }),
+                });
+                if (!res.ok) throw new Error('Video generation failed');
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                setStoryVideo(url);
+              } catch (err) {
+                console.error('Video error:', err);
+              }
+              setVideoLoading(false);
+            }}
+            disabled={videoLoading}
+            className="w-full mt-3 py-3.5 rounded-2xl font-bold text-white text-base flex items-center justify-center gap-2"
+            style={{ background: 'linear-gradient(135deg, #8B5CF6, #EC4899)' }}>
+            {videoLoading ? (
+              <>
+                <span className="animate-spin inline-block w-5 h-5 border-2 border-white/30 border-t-white rounded-full" />
+                Generating Animation...
+              </>
+            ) : (
+              <>🎬 Animate Story</>
+            )}
+          </button>
+
+          {/* Video Player */}
+          {storyVideo && (
+            <div className="mt-4 rounded-2xl overflow-hidden">
+              <video src={storyVideo} controls autoPlay className="w-full rounded-2xl" />
+            </div>
+          )}
         </div>
       );
     }
@@ -450,10 +538,10 @@ export default function GujaratiKidsApp() {
           {stories.map((story) => {
             const isRead = progress.storiesRead.includes(story.id);
             return (
-              <button key={story.id} onClick={() => setActiveStory(story)}
+              <button key={story.id} onClick={() => { setActiveStory(story); setStoryVideo(null); }}
                 className={`w-full text-left glass-card-strong p-4 transition-transform active:scale-[0.98] ${isRead ? 'border-emerald-200' : ''}`}>
                 <div className="flex items-center gap-4">
-                  <img src="/images/story.webp" alt="" className="w-14 h-14 rounded-xl object-cover" />
+                  <img src={storyCoverImages[story.id] || '/images/story.webp'} alt="" className="w-14 h-14 rounded-xl object-cover" />
                   <div className="flex-1 min-w-0">
                     <p className="text-lg font-black" style={{ fontFamily: 'var(--font-gujarati)' }}>{story.titleGujarati}</p>
                     <p className="text-sm text-gray-500 font-medium">{story.titleEnglish}</p>
@@ -704,7 +792,7 @@ export default function GujaratiKidsApp() {
                 {msg.role === 'assistant' && (
                   <button onClick={() => speak(msg.content, `chat-${i}`)}
                     className="mt-1.5 text-xs font-bold opacity-60 hover:opacity-100 transition-opacity">
-                    🔊 Listen
+                    <SpeakIcon id={`chat-${i}`} currentlyPlaying={currentlyPlaying} ttsLoading={ttsLoading} /> Listen
                   </button>
                 )}
               </div>
