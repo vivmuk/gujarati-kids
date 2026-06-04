@@ -1,0 +1,18 @@
+{
+  "name": "ગુજરાતી શીખો — Learn Gujarati",
+  "short_name": "ગુજરાતી",
+  "description": "Interactive Gujarati learning app for kids with AI speech, images & stories",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FFFBF5",
+  "theme_color": "#FFA63D",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/images/home.webp",
+      "sizes": "512x512",
+      "type": "image/webp",
+      "purpose": "any maskable"
+    }
+  ]
+}

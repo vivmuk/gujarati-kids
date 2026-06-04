@@ -15,8 +15,8 @@ export async function POST(req: NextRequest) {
     const langHint = language || (hasGujarati ? 'gu' : undefined);
 
     const body: Record<string, unknown> = {
-      model: model || 'tts-xai-v1',
-      voice: voice || 'ara',
+      model: model || 'tts-gemini-3-1-flash',
+      voice: voice || 'Aoede',
       input: text,
       response_format: 'mp3',
       speed: speed || 0.85,

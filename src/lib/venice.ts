@@ -32,8 +32,8 @@ export async function veniceTTS(input: string, options: Record<string, unknown> 
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: options.model || 'tts-xai-v1',
-      voice: options.voice || 'ara',
+      model: options.model || 'tts-gemini-3-1-flash',
+      voice: options.voice || 'Aoede',
       input,
       response_format: 'mp3',
       speed: options.speed || 0.85,
