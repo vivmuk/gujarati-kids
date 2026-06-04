@@ -1,7 +1,19 @@
 #!/usr/bin/env tsx
 /**
- * Parallel image pre-generator — splits work across 3 workers for ~3x speedup.
+ * Parallel image pre-generator — splits work across N workers for ~Nx speedup.
  * Reads the data file the same way as pregenerate.cts but only does images.
+ *
+ * ╔══════════════════════════════════════════════════════════════════╗
+ * ║  STYLE + MODEL CONSTANTS — see docs/STYLE_GUIDE.md for details  ║
+ * ║  Edit STYLE_PREFIX / IMAGE_MODEL below to re-skin the app.      ║
+ * ╚══════════════════════════════════════════════════════════════════╝
+ *
+ * Usage (from project root):
+ *   npx tsx scripts/pregen-images.cts 0 4 &   # worker 1 of 4
+ *   npx tsx scripts/pregen-images.cts 1 4 &   # worker 2 of 4
+ *   npx tsx scripts/pregen-images.cts 2 4 &
+ *   npx tsx scripts/pregen-images.cts 3 4 &
+ *   wait
  */
 import * as fs from 'fs';
 import * as path from 'path';
@@ -12,6 +24,13 @@ const PROJECT_ROOT = process.cwd();
 const PUBLIC_DIR = path.join(PROJECT_ROOT, 'public');
 const IMAGE_DIR = path.join(PUBLIC_DIR, 'images', 'gen');
 
+// === STYLE & MODEL CONSTANTS (edit here to re-skin the app) ===
+const IMAGE_MODEL = 'grok-imagine-image';
+const IMAGE_ASPECT_RATIO = '1:1';
+const IMAGE_FORMAT = 'webp';
+const IMAGE_SAFE_MODE = true;
+
+// Prepended to every image prompt — 1990s Indian school textbook style.
 const STYLE_PREFIX =
   '1990s Indian school textbook illustration style, hand-drawn watercolor look, warm earthy tones, simple clean lines, flat perspective, educational diagram aesthetic, muted colors on off-white paper background:';
 
@@ -106,12 +125,12 @@ async function generateImage(prompt: string, filePath: string, retries = 3): Pro
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'grok-imagine-image',
+          model: IMAGE_MODEL,
           prompt: `${STYLE_PREFIX} ${prompt}`,
-          aspect_ratio: '1:1',
-          format: 'webp',
+          aspect_ratio: IMAGE_ASPECT_RATIO,
+          format: IMAGE_FORMAT,
           return_binary: false,
-          safe_mode: true,
+          safe_mode: IMAGE_SAFE_MODE,
         }),
       });
       if (!res.ok) {

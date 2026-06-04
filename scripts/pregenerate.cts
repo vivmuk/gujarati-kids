@@ -1,18 +1,47 @@
-#!/usr/bin/env npx ts-node
+#!/usr/bin/env tsx
 /**
  * Pre-generate all TTS audio and images for the Gujarati Kids app.
  *
+ * ╔══════════════════════════════════════════════════════════════════╗
+ * ║  STYLE + PROMPT TEMPLATES — see docs/STYLE_GUIDE.md for details  ║
+ * ╚══════════════════════════════════════════════════════════════════╝
+ *
+ * To change the visual style, edit STYLE_PREFIX below AND in:
+ *   - scripts/pregen-images.cts
+ *   - src/app/api/image/route.ts
+ *   - src/app/api/chat/route.ts
+ *
+ * To change the TTS model/voice/language, edit generateAudio() below AND:
+ *   - src/lib/venice.ts (veniceTTS defaults)
+ *   - src/app/api/tts/route.ts
+ *
  * Usage:
- *   VENICE_API_KEY=xxx npx ts-node scripts/pregenerate.ts          # generate everything
- *   VENICE_API_KEY=xxx npx ts-node scripts/pregenerate.ts --audio  # audio only
- *   VENICE_API_KEY=xxx npx ts-node scripts/pregenerate.ts --images # images only
+ *   VENICE_API_KEY=xxx npx tsx scripts/pregenerate.cts          # generate everything
+ *   VENICE_API_KEY=xxx npx tsx scripts/pregenerate.cts --audio  # audio only
+ *   VENICE_API_KEY=xxx npx tsx scripts/pregenerate.cts --images # images only
  *
  * Outputs:
- *   public/audio/<slug>.mp3   — TTS for every word, phrase, story line, and letter
- *   public/audio/manifest.json — maps slugs to file paths
- *   public/images/gen/<slug>.webp — AI-generated illustrations
- *   public/images/manifest.json — maps slugs to file paths
+ *   public/audio/<slug>.mp3        — TTS for every word, phrase, story line, and letter
+ *   public/audio/manifest.json    — maps slugs to file paths
+ *   public/images/gen/<slug>.webp  — AI-generated illustrations
+ *   public/images/gen/manifest.json — maps slugs to file paths
  */
+
+// === STYLE & MODEL CONSTANTS (edit here to re-skin the app) ===
+const IMAGE_MODEL = 'grok-imagine-image';
+const IMAGE_ASPECT_RATIO = '1:1';
+const IMAGE_FORMAT = 'webp';
+const IMAGE_SAFE_MODE = true;
+
+const TTS_MODEL = 'tts-xai-v1';
+const TTS_VOICE = 'eve';
+const TTS_SPEED = 0.9;
+const TTS_LANG_GUJARATI = 'gu';
+const TTS_LANG_LATIN = 'en';
+
+// Prepended to every image prompt — 1990s Indian school textbook style.
+const STYLE_PREFIX =
+  '1990s Indian school textbook illustration style, hand-drawn watercolor look, warm earthy tones, simple clean lines, flat perspective, educational diagram aesthetic, muted colors on off-white paper background:';
 
 import * as fs from 'fs';
 import * as path from 'path';
@@ -95,13 +124,13 @@ async function generateAudio(text: string, filePath: string, retries = 3): Promi
     try {
       const hasGujarati = /[\u0A80-\u0AFF]/.test(text);
       const body: Record<string, unknown> = {
-        model: 'tts-xai-v1',
-        voice: 'eve',
+        model: TTS_MODEL,
+        voice: TTS_VOICE,
         input: text,
         response_format: 'mp3',
-        speed: 0.9,
+        speed: TTS_SPEED,
       };
-      if (hasGujarati) body.language = 'gu';
+      if (hasGujarati) body.language = TTS_LANG_GUJARATI;
 
       const res = await fetch(`${VENICE_BASE_URL}/audio/speech`, {
         method: 'POST',
@@ -141,12 +170,12 @@ async function generateImage(prompt: string, filePath: string, retries = 3): Pro
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'grok-imagine-image',
-          prompt: `1990s Indian school textbook illustration style, hand-drawn watercolor look, warm earthy tones, simple clean lines, flat perspective, educational diagram aesthetic, muted colors on off-white paper background: ${prompt}`,
-          aspect_ratio: '1:1',
-          format: 'webp',
+          model: IMAGE_MODEL,
+          prompt: `${STYLE_PREFIX} ${prompt}`,
+          aspect_ratio: IMAGE_ASPECT_RATIO,
+          format: IMAGE_FORMAT,
           return_binary: false,
-          safe_mode: true,
+          safe_mode: IMAGE_SAFE_MODE,
         }),
       });
 

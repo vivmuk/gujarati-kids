@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
+// 1990s Indian school textbook style — applied to every generated image.
+// See docs/STYLE_GUIDE.md for how to change this globally.
+const STYLE_PREFIX =
+  '1990s Indian school textbook illustration style, hand-drawn watercolor look, warm earthy tones, simple clean lines, flat perspective, educational diagram aesthetic, muted colors on off-white paper background:';
+
 export async function POST(req: NextRequest) {
   try {
     const { prompt } = await req.json();
@@ -18,7 +23,7 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify({
         model: 'grok-imagine-image',
-        prompt: `1990s Indian school textbook illustration style, hand-drawn watercolor look, warm earthy tones, simple clean lines, flat perspective, educational diagram aesthetic, muted colors on off-white paper background: ${prompt}`,
+        prompt: `${STYLE_PREFIX} ${prompt}`,
         aspect_ratio: '1:1',
         format: 'webp',
         return_binary: false,
