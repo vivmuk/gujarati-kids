@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState } from 'react';
 import { words, categoryMeta, type WordItem } from '@/data/gujarati';
 import { useSpeak } from './useSpeak';
@@ -27,7 +27,7 @@ export function WordsSection({ wordsLearned, onWordLearned }: Props) {
       {/* Header */}
       <div className="relative rounded-2xl overflow-hidden mb-4" style={{ background: 'var(--gradient-saffron)' }}>
         <div className="flex items-center gap-3 p-4 text-white">
-          <img src={categoryImages[activeCategory] || '/images/animal.webp'} alt="" className="w-14 h-14 rounded-xl object-cover border-2 border-white/30" />
+          <img src={categoryImages[activeCategory] || '/images/animal.webp'} alt="" className="w-14 h-14 rounded-xl object-contain border-2 border-white/30" />
           <div>
             <p className="font-bold text-lg">Learn Words</p>
             <p className="text-white/70 text-xs font-medium" style={{ fontFamily: 'var(--font-gujarati)' }}>શબ્દો શીખો</p>
@@ -66,7 +66,7 @@ export function WordsSection({ wordsLearned, onWordLearned }: Props) {
                 <img
                   src={imgPath}
                   alt={word.english}
-                  className="w-full h-20 object-cover rounded-lg mb-2"
+                  className="w-full h-20 object-contain rounded-lg mb-2"
                   onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                 />
               )}

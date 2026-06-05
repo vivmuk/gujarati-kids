@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState, useCallback } from 'react';
 import { generateQuiz, words, phrases, swar, vyanjan } from '@/data/gujarati';
 import { useSpeak } from './useSpeak';
@@ -111,7 +111,7 @@ export function QuizSection({ onQuizComplete }: Props) {
     <div className="px-4 pt-4 pb-6 animate-fade-in">
       <div className="relative rounded-2xl overflow-hidden mb-4" style={{ background: 'var(--gradient-saffron)' }}>
         <div className="flex items-center gap-3 p-4 text-white">
-          <img src="/images/quiz.webp" alt="" className="w-14 h-14 rounded-xl object-cover border-2 border-white/30" />
+          <img src="/images/quiz.webp" alt="" className="w-14 h-14 rounded-xl object-contain border-2 border-white/30" />
           <div>
             <p className="font-bold text-lg">Quiz Time!</p>
             <p className="text-white/70 text-xs" style={{ fontFamily: 'var(--font-gujarati)' }}>રમત-રમતમાં શીખો</p>

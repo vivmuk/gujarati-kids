@@ -1,5 +1,6 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+
+import { useCallback, useEffect, useMemo, useState, type MouseEvent } from 'react';
 import { AlphabetSection } from '@/components/AlphabetSection';
 import { WordsSection } from '@/components/WordsSection';
 import { PhrasesSection } from '@/components/PhrasesSection';
@@ -7,9 +8,13 @@ import { StoriesSection } from '@/components/StoriesSection';
 import { QuizSection } from '@/components/QuizSection';
 import { ChatSection } from '@/components/ChatSection';
 import { ProgressSection } from '@/components/ProgressSection';
+import { BlockPrintBand, Guju, HalftoneOverlay, PlayTriangleIcon, ProgressRing, Starburst } from '@/components/RisoFolk';
+import { useSpeak } from '@/components/useSpeak';
+import { swar, vyanjan, words, type LetterItem, type WordItem } from '@/data/gujarati';
+import { getLetterAudio, getLetterImage, getWordImage } from '@/data/assets';
 
-// ============ TYPES ============
 type TabId = 'home' | 'alphabet' | 'words' | 'phrases' | 'stories' | 'quiz' | 'chat' | 'progress';
+type LessonPointer = { type: 'letter' | 'word' | 'phrase' | 'story'; id: string };
 
 interface ProgressState {
   lettersLearned: string[];
@@ -18,23 +23,13 @@ interface ProgressState {
   quizScore: number;
   quizTotal: number;
   storiesRead: string[];
+  streakDays: number;
+  lastActiveDate: string;
+  lastLesson?: LessonPointer;
 }
 
-// ============ NAV CONFIG ============
-const NAV_ITEMS: Array<{ id: TabId; label: string; icon: string; img?: string }> = [
-  { id: 'home', label: 'Home', icon: '🏠', img: '/images/home.webp' },
-  { id: 'alphabet', label: 'Letters', icon: '🔤', img: '/images/alphabet.webp' },
-  { id: 'words', label: 'Words', icon: '📚', img: '/images/animal.webp' },
-  { id: 'phrases', label: 'Phrases', icon: '💬', img: '/images/greeting.webp' },
-  { id: 'stories', label: 'Stories', icon: '📖', img: '/images/story.webp' },
-  { id: 'quiz', label: 'Quiz', icon: '🎯', img: '/images/quiz.webp' },
-  { id: 'chat', label: 'Guju AI', icon: '🤖', img: '/images/chat.webp' },
-  { id: 'progress', label: 'Progress', icon: '⭐', img: '/images/progress.webp' },
-];
-
-// Bottom bar order — 'chat' (Guju AI) is centered and rendered as a raised hero.
-// Home stays reachable via the header title; Phrases & Progress via the home grid.
-const BOTTOM_NAV: TabId[] = ['alphabet', 'words', 'chat', 'stories', 'quiz'];
+const ALL_LETTERS = [...swar, ...vyanjan];
+const TOTAL_LETTERS = ALL_LETTERS.length;
 
 const DEFAULT_PROGRESS: ProgressState = {
   lettersLearned: [],
@@ -43,152 +38,418 @@ const DEFAULT_PROGRESS: ProgressState = {
   quizScore: 0,
   quizTotal: 0,
   storiesRead: [],
+  streakDays: 0,
+  lastActiveDate: '',
 };
 
-// ============ MAIN APP ============
+const SECTION_TILES: Array<{ id: Exclude<TabId, 'home' | 'progress'>; gu: string; en: string; sub: string }> = [
+  { id: 'alphabet', gu: 'કક્કો', en: 'Letters', sub: 'સ્વર · વ્યંજન' },
+  { id: 'words', gu: 'શબ્દો', en: 'Words', sub: '8 categories' },
+  { id: 'phrases', gu: 'વાક્યો', en: 'Phrases', sub: 'Say it out loud' },
+  { id: 'stories', gu: 'વાર્તા', en: 'Stories', sub: 'Read along' },
+  { id: 'quiz', gu: 'રમત', en: 'Quiz', sub: 'Play & win stars' },
+  { id: 'chat', gu: 'ગુજુ', en: 'Ask Guju', sub: 'Your tutor' },
+];
+
+const TAB_META: Record<TabId, { gu: string; en: string }> = {
+  home: { gu: 'ઘર', en: 'Home' },
+  alphabet: { gu: 'કક્કો', en: 'Letters' },
+  words: { gu: 'શબ્દો', en: 'Words' },
+  phrases: { gu: 'વાક્યો', en: 'Phrases' },
+  stories: { gu: 'વાર્તા', en: 'Stories' },
+  quiz: { gu: 'રમત', en: 'Quiz' },
+  chat: { gu: 'ગુજુ', en: 'Guju' },
+  progress: { gu: 'પ્રગતિ', en: 'Progress' },
+};
+
+const BOTTOM_TABS: Array<{ id: 'home' | 'alphabet' | 'quiz' | 'chat'; gu: string; en: string }> = [
+  { id: 'home', gu: 'ઘર', en: 'Home' },
+  { id: 'alphabet', gu: 'શીખો', en: 'Learn' },
+  { id: 'quiz', gu: 'રમો', en: 'Play' },
+  { id: 'chat', gu: 'ગુજુ', en: 'Guju' },
+];
+
+function localISODate(date = new Date()): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function yesterdayISO(): string {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return localISODate(d);
+}
+
+function dayOfYear(date = new Date()): number {
+  const start = new Date(date.getFullYear(), 0, 0);
+  return Math.floor((date.getTime() - start.getTime()) / 86_400_000);
+}
+
+function normalizeStringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
+}
+
+function migrateProgress(raw: unknown): ProgressState {
+  const saved = raw && typeof raw === 'object' ? (raw as Partial<ProgressState>) : {};
+  const base: ProgressState = {
+    ...DEFAULT_PROGRESS,
+    lettersLearned: normalizeStringArray(saved.lettersLearned),
+    wordsLearned: normalizeStringArray(saved.wordsLearned),
+    phrasesLearned: normalizeStringArray(saved.phrasesLearned),
+    quizScore: typeof saved.quizScore === 'number' ? saved.quizScore : 0,
+    quizTotal: typeof saved.quizTotal === 'number' ? saved.quizTotal : 0,
+    storiesRead: normalizeStringArray(saved.storiesRead),
+    streakDays: typeof saved.streakDays === 'number' && saved.streakDays > 0 ? saved.streakDays : 0,
+    lastActiveDate: typeof saved.lastActiveDate === 'string' ? saved.lastActiveDate : '',
+    lastLesson: saved.lastLesson,
+  };
+
+  const today = localISODate();
+  if (base.lastActiveDate === today) {
+    return { ...base, streakDays: Math.max(1, base.streakDays) };
+  }
+  if (base.lastActiveDate === yesterdayISO()) {
+    return { ...base, lastActiveDate: today, streakDays: Math.max(1, base.streakDays) + 1 };
+  }
+  return { ...base, lastActiveDate: today, streakDays: 1 };
+}
+
+function bottomActiveTab(activeTab: TabId): 'home' | 'alphabet' | 'quiz' | 'chat' {
+  if (activeTab === 'home') return 'home';
+  if (activeTab === 'chat') return 'chat';
+  if (activeTab === 'quiz' || activeTab === 'progress') return 'quiz';
+  return 'alphabet';
+}
+
+function firstUnlearnedLetter(learned: string[]): LetterItem {
+  return ALL_LETTERS.find(letter => !learned.includes(letter.roman)) || ALL_LETTERS[0];
+}
+
+function wordOfTheDay(): WordItem {
+  return words[(dayOfYear() - 1) % words.length] || words[0];
+}
+
 export default function GujaratiApp() {
   const [activeTab, setActiveTab] = useState<TabId>('home');
   const [progress, setProgress] = useState<ProgressState>(DEFAULT_PROGRESS);
+  const [hasLoadedProgress, setHasLoadedProgress] = useState(false);
+  const { speak, currentlyPlaying } = useSpeak();
 
-  // Load progress from localStorage
   useEffect(() => {
+    let nextProgress = DEFAULT_PROGRESS;
     try {
       const saved = localStorage.getItem('gujarati-progress');
-      if (saved) setProgress(JSON.parse(saved));
-    } catch {}
+      nextProgress = migrateProgress(saved ? JSON.parse(saved) : null);
+    } catch {
+      nextProgress = migrateProgress(null);
+    }
+
+    const timer = window.setTimeout(() => {
+      setProgress(nextProgress);
+      setHasLoadedProgress(true);
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
-  // Save progress
   useEffect(() => {
+    if (!hasLoadedProgress) return;
     try {
       localStorage.setItem('gujarati-progress', JSON.stringify(progress));
     } catch {}
-  }, [progress]);
+  }, [hasLoadedProgress, progress]);
 
   const markLetterLearned = useCallback((letter: string) => {
-    setProgress(p => p.lettersLearned.includes(letter) ? p : { ...p, lettersLearned: [...p.lettersLearned, letter] });
+    setProgress(p => ({
+      ...p,
+      lettersLearned: p.lettersLearned.includes(letter) ? p.lettersLearned : [...p.lettersLearned, letter],
+      lastLesson: { type: 'letter', id: letter },
+    }));
   }, []);
+
   const markWordLearned = useCallback((word: string) => {
-    setProgress(p => p.wordsLearned.includes(word) ? p : { ...p, wordsLearned: [...p.wordsLearned, word] });
+    setProgress(p => ({
+      ...p,
+      wordsLearned: p.wordsLearned.includes(word) ? p.wordsLearned : [...p.wordsLearned, word],
+      lastLesson: { type: 'word', id: word },
+    }));
   }, []);
+
   const markPhraseLearned = useCallback((phrase: string) => {
-    setProgress(p => p.phrasesLearned.includes(phrase) ? p : { ...p, phrasesLearned: [...p.phrasesLearned, phrase] });
+    setProgress(p => ({
+      ...p,
+      phrasesLearned: p.phrasesLearned.includes(phrase) ? p.phrasesLearned : [...p.phrasesLearned, phrase],
+      lastLesson: { type: 'phrase', id: phrase },
+    }));
   }, []);
 
-  // ============ HOME ============
-  const renderHome = () => (
-    <div className="px-4 pt-4 pb-6 animate-fade-in">
-      {/* Hero */}
-      <div className="relative rounded-3xl overflow-hidden mb-6" style={{ background: 'var(--gradient-ocean)' }}>
-        <div className="p-6 text-white text-center">
-          <p className="text-5xl mb-3">🇮🇳</p>
-          <h1 className="text-3xl font-black mb-1" style={{ fontFamily: 'var(--font-gujarati)' }}>ગુજરાતી</h1>
-          <p className="text-white/80 text-lg font-semibold">Learn Gujarati!</p>
-          <p className="text-white/60 text-sm mt-1" style={{ fontFamily: 'var(--font-gujarati)' }}>ગુજરાતી શીખો — રમત-રમતમાં!</p>
-        </div>
-      </div>
+  const continueLetter = useMemo(() => {
+    const savedLetter =
+      progress.lastLesson?.type === 'letter'
+        ? ALL_LETTERS.find(letter => letter.roman === progress.lastLesson?.id)
+        : undefined;
+    return savedLetter || firstUnlearnedLetter(progress.lettersLearned);
+  }, [progress.lastLesson, progress.lettersLearned]);
 
-      {/* Quick stats */}
-      <div className="grid grid-cols-3 gap-2 mb-6">
-        <div className="glass-card p-3 text-center">
-          <p className="text-2xl font-black" style={{ color: 'var(--saffron-600)' }}>{progress.lettersLearned.length}</p>
-          <p className="text-[10px] font-bold text-gray-500">Letters</p>
-        </div>
-        <div className="glass-card p-3 text-center">
-          <p className="text-2xl font-black" style={{ color: 'var(--saffron-600)' }}>{progress.wordsLearned.length}</p>
-          <p className="text-[10px] font-bold text-gray-500">Words</p>
-        </div>
-        <div className="glass-card p-3 text-center">
-          <p className="text-2xl font-black" style={{ color: 'var(--saffron-600)' }}>{progress.phrasesLearned.length}</p>
-          <p className="text-[10px] font-bold text-gray-500">Phrases</p>
-        </div>
-      </div>
+  const dailyWord = useMemo(() => wordOfTheDay(), []);
 
-      {/* Section cards */}
-      <div className="grid grid-cols-2 gap-3">
-        {NAV_ITEMS.filter(n => n.id !== 'home' && n.id !== 'progress').map(item => (
-          <button key={item.id} onClick={() => setActiveTab(item.id)}
-            className="glass-card p-4 text-left hover:shadow-lg transition-all active:scale-95 group">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-2xl group-hover:scale-110 transition-transform">{item.icon}</span>
-              <span className="font-bold text-sm">{item.label}</span>
+  const playContinueLetter = (event?: MouseEvent) => {
+    event?.stopPropagation();
+    const audio = getLetterAudio(continueLetter.roman);
+    if (audio) speak(audio, `letter-${continueLetter.roman}`);
+    else speak(continueLetter.gujarati, `letter-${continueLetter.roman}`);
+    markLetterLearned(continueLetter.roman);
+  };
+
+  const renderHome = () => {
+    const letterImage = getLetterImage(continueLetter.roman) || '/images/gen/letter-ka.webp';
+    const wordImage = getWordImage(dailyWord.roman) || '/images/cow.webp';
+
+    return (
+      <div className="relative min-h-[calc(100dvh-96px)] pb-28 animate-fade-in">
+        <BlockPrintBand />
+
+        <div className="flex items-center gap-3 px-5 pt-4">
+          <div
+            className="flex h-[54px] w-[54px] shrink-0 items-center justify-center rounded-2xl bg-white"
+            style={{ border: '2px solid var(--rf-ink)', boxShadow: '3px 3px 0 var(--rf-saffron)' }}
+          >
+            <Guju size={42} sw={2.6} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[13px] font-semibold" style={{ color: 'var(--rf-muted)' }}>
+              Hi! I&apos;m Guju.
+            </p>
+            <h1
+              className="rf-gujarati truncate text-[25px] font-bold leading-[1.05]"
+              style={{ color: 'var(--rf-indigo)', textShadow: '1.5px 1.5px 0 var(--rf-saffron)' }}
+            >
+              ગુજરાતી શીખો
+            </h1>
+          </div>
+        </div>
+
+        <section
+          role="button"
+          tabIndex={0}
+          aria-label={`Continue Gujarati letter ${continueLetter.roman}`}
+          onClick={() => setActiveTab('alphabet')}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') setActiveTab('alphabet');
+          }}
+          className="rf-pressable relative mx-4 mt-4 cursor-pointer overflow-hidden p-3.5 text-white"
+          style={{
+            background: 'var(--rf-indigo)',
+            borderRadius: 'var(--rf-radius-hero)',
+            border: 'var(--rf-border)',
+            boxShadow: 'var(--rf-shadow-saffron)',
+          }}
+        >
+          <HalftoneOverlay alpha={0.1} size={7} />
+          <div className="pointer-events-none absolute -right-3 -top-3 opacity-20">
+            <svg width="110" height="110" viewBox="0 0 36 36" aria-hidden="true">
+              <rect x="6" y="6" width="24" height="24" transform="rotate(45 18 18)" fill="none" stroke="#fff" strokeWidth="1.6" />
+              <circle cx="18" cy="18" r="4" fill="#fff" />
+            </svg>
+          </div>
+
+          <div className="relative flex items-center gap-3">
+            <div className="h-[70px] w-[70px] shrink-0 overflow-hidden rounded-[14px] border-2 border-white/50 bg-white">
+              <img src={letterImage} alt="" className="rf-image-contain h-full w-full p-1" />
             </div>
-            {item.img && <img src={item.img} alt="" className="w-full h-16 object-cover rounded-lg opacity-70" />}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] font-bold uppercase tracking-[1px]" style={{ color: 'var(--rf-saffron-pale)' }}>
+                Continue · પાઠ ૧
+              </p>
+              <p className="rf-gujarati truncate text-[22px] font-bold leading-tight">
+                અક્ષર {continueLetter.gujarati}{' '}
+                <span className="font-sans text-sm font-medium opacity-70">&quot;{continueLetter.roman}&quot;</span>
+              </p>
+              <p className="truncate text-[13px] font-medium opacity-85">
+                {continueLetter.exampleEnglish} · {continueLetter.example}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={playContinueLetter}
+              aria-label={`Play ${continueLetter.gujarati}`}
+              className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-full border-2 border-white text-white transition-transform active:scale-95"
+              style={{ background: 'var(--rf-saffron)' }}
+            >
+              <PlayTriangleIcon className={`h-5 w-5 ${currentlyPlaying === `letter-${continueLetter.roman}` ? 'animate-pulse' : ''}`} />
+            </button>
+          </div>
+        </section>
 
-  // ============ CONTENT ============
+        <div className="grid grid-cols-2 gap-2.5 px-4 pt-4">
+          {SECTION_TILES.map((item, index) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setActiveTab(item.id)}
+              className="rf-pressable relative min-h-[92px] overflow-hidden px-[13px] py-3 text-left text-white"
+              style={{
+                background: index % 2 === 0 ? 'var(--rf-saffron)' : 'var(--rf-indigo)',
+                borderRadius: 'var(--rf-radius-card)',
+                border: 'var(--rf-border)',
+                boxShadow: 'var(--rf-shadow-ink)',
+              }}
+            >
+              <HalftoneOverlay alpha={0.14} size={6} />
+              <span className="absolute right-3 top-3 h-[9px] w-[9px] rotate-45 bg-white opacity-90" aria-hidden="true" />
+              <span className="relative block">
+                <span className="rf-gujarati block text-[21px] font-bold leading-none">{item.gu}</span>
+                <span className="mt-1 block text-xs font-bold uppercase tracking-[0.5px] opacity-95">{item.en}</span>
+                <span className="mt-0.5 block text-[11px] font-medium opacity-80">{item.sub}</span>
+              </span>
+            </button>
+          ))}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('words')}
+          className="rf-pressable mx-4 mt-4 flex w-[calc(100%-2rem)] items-center gap-3 bg-white px-3 py-2.5 text-left"
+          style={{ borderRadius: 'var(--rf-radius-card)', border: 'var(--rf-border)', boxShadow: 'var(--rf-shadow-indigo)' }}
+        >
+          <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-white" style={{ border: '2px solid var(--rf-ink)' }}>
+            <img src={wordImage} alt="" className="rf-image-contain h-full w-full p-1" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] font-bold uppercase tracking-[1px]" style={{ color: 'var(--rf-saffron)' }}>
+              Word of the day
+            </p>
+            <p className="rf-gujarati truncate text-[22px] font-bold leading-none">
+              {dailyWord.gujarati}{' '}
+              <span className="font-sans text-[13px] font-semibold" style={{ color: 'var(--rf-muted)' }}>
+                {dailyWord.roman}
+              </span>
+            </p>
+            <p className="text-xs font-semibold" style={{ color: 'var(--rf-indigo)' }}>
+              {dailyWord.english}
+            </p>
+          </div>
+          <Starburst>NEW</Starburst>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('progress')}
+          className="rf-pressable mx-4 mt-4 flex w-[calc(100%-2rem)] items-center gap-3 bg-white px-3.5 py-2 text-left"
+          style={{ borderRadius: 'var(--rf-radius-card)', border: 'var(--rf-border)', boxShadow: 'var(--rf-shadow-saffron)' }}
+        >
+          <ProgressRing value={progress.lettersLearned.length} total={TOTAL_LETTERS} label="Letters learned" />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-bold">
+              {progress.streakDays}-day streak!
+            </p>
+            <p className="truncate text-xs font-medium" style={{ color: 'var(--rf-muted)' }}>
+              {progress.lettersLearned.length} letters · {progress.wordsLearned.length} words learned
+            </p>
+          </div>
+          <span className="text-lg" aria-hidden="true">
+            🔥
+          </span>
+        </button>
+      </div>
+    );
+  };
+
   const renderContent = () => {
     switch (activeTab) {
-      case 'home': return renderHome();
-      case 'alphabet': return <AlphabetSection onLetterLearned={markLetterLearned} />;
-      case 'words': return <WordsSection wordsLearned={progress.wordsLearned} onWordLearned={markWordLearned} />;
-      case 'phrases': return <PhrasesSection phrasesLearned={progress.phrasesLearned} onPhraseLearned={markPhraseLearned} />;
-      case 'stories': return <StoriesSection />;
-      case 'quiz': return <QuizSection onQuizComplete={(s, t) => setProgress(p => ({ ...p, quizScore: p.quizScore + s, quizTotal: p.quizTotal + t }))} />;
-      case 'chat': return <ChatSection />;
-      case 'progress': return <ProgressSection progress={progress} />;
+      case 'home':
+        return renderHome();
+      case 'alphabet':
+        return <AlphabetSection onLetterLearned={markLetterLearned} />;
+      case 'words':
+        return <WordsSection wordsLearned={progress.wordsLearned} onWordLearned={markWordLearned} />;
+      case 'phrases':
+        return <PhrasesSection phrasesLearned={progress.phrasesLearned} onPhraseLearned={markPhraseLearned} />;
+      case 'stories':
+        return <StoriesSection />;
+      case 'quiz':
+        return <QuizSection onQuizComplete={(s, t) => setProgress(p => ({ ...p, quizScore: p.quizScore + s, quizTotal: p.quizTotal + t }))} />;
+      case 'chat':
+        return <ChatSection />;
+      case 'progress':
+        return <ProgressSection progress={progress} />;
     }
   };
 
+  const activeBottom = bottomActiveTab(activeTab);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-rose-50">
-      {/* Header */}
-      <header className="sticky top-0 z-50 backdrop-blur-xl bg-white/70 border-b border-white/50">
-        <div className="max-w-lg mx-auto flex items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-2">
-            {activeTab !== 'home' && (
-              <button onClick={() => setActiveTab('home')} aria-label="Back to home" className="text-gray-500 hover:text-gray-800 transition-colors mr-1">←</button>
-            )}
-            {/* Title doubles as a Home button so Home is always reachable from the bar-less header */}
-            <button onClick={() => setActiveTab('home')} className="text-xl font-black" style={{ color: 'var(--saffron-600)' }}>
-              {activeTab === 'home' ? '🏠' : NAV_ITEMS.find(n => n.id === activeTab)?.icon} {NAV_ITEMS.find(n => n.id === activeTab)?.label}
+    <div className="min-h-screen bg-[var(--rf-cream)]">
+      {activeTab !== 'home' && (
+        <header className="sticky top-0 z-40 border-b-2 bg-white" style={{ borderColor: 'var(--rf-ink)' }}>
+          <div className="mx-auto flex max-w-lg items-center justify-between px-4 py-3">
+            <button
+              type="button"
+              onClick={() => setActiveTab('home')}
+              className="rf-pressable flex min-h-11 items-center gap-2 rounded-xl px-2 text-left"
+            >
+              <span className="text-xl leading-none">←</span>
+              <span>
+                <span className="rf-gujarati block text-base font-bold leading-none" style={{ color: 'var(--rf-indigo)' }}>
+                  {TAB_META[activeTab].gu}
+                </span>
+                <span className="block text-[10px] font-bold uppercase tracking-[0.6px]" style={{ color: 'var(--rf-muted)' }}>
+                  {TAB_META[activeTab].en}
+                </span>
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('progress')}
+              className="rf-pressable min-h-11 rounded-xl px-3 py-1.5 text-xs font-bold uppercase tracking-[0.6px]"
+              style={{
+                background: activeTab === 'progress' ? 'var(--rf-saffron)' : 'var(--rf-card)',
+                color: activeTab === 'progress' ? '#fff' : 'var(--rf-indigo)',
+                border: '2px solid var(--rf-ink)',
+                boxShadow: '2px 2px 0 var(--rf-ink)',
+              }}
+            >
+              {progress.wordsLearned.length} words
             </button>
           </div>
-          <button onClick={() => setActiveTab('progress')} className="text-sm font-bold text-amber-600">
-            {progress.wordsLearned.length} ✅
-          </button>
-        </div>
-      </header>
+        </header>
+      )}
 
-      {/* Main content */}
-      <main className="max-w-lg mx-auto pb-24">
+      <main className="mx-auto max-w-lg pb-24">
         {renderContent()}
       </main>
 
-      {/* Bottom nav — Guju AI sits dead-center as an elevated hero button */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 backdrop-blur-xl bg-white/80 border-t border-gray-100">
-        <div className="max-w-lg mx-auto flex items-end justify-around px-1">
-          {BOTTOM_NAV.map(id => {
-            const item = NAV_ITEMS.find(n => n.id === id)!;
-            const isActive = activeTab === id;
-
-            if (id === 'chat') {
-              // Centered, raised AI button
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white">
+        <div className="mx-auto max-w-lg">
+          <BlockPrintBand height={9} opacity={0.45} />
+          <div className="flex h-14 border-t-2 bg-white" style={{ borderColor: 'var(--rf-ink)' }}>
+            {BOTTOM_TABS.map(tab => {
+              const isActive = activeBottom === tab.id;
               return (
-                <button key={id} onClick={() => setActiveTab('chat')} aria-label="Guju AI"
-                  className="flex flex-col items-center -mt-7 flex-shrink-0">
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
+                  className="flex flex-1 items-center justify-center"
+                  aria-current={isActive ? 'page' : undefined}
+                >
                   <span
-                    className={`w-14 h-14 rounded-full flex items-center justify-center text-2xl text-white shadow-lg ring-4 ring-white transition-transform active:scale-95 ${isActive ? 'scale-105' : ''}`}
-                    style={{ background: 'var(--gradient-berry)' }}>
-                    🤖
+                    className="flex min-h-11 min-w-12 flex-col items-center justify-center gap-0.5 px-3 py-1"
+                    style={{
+                      background: isActive ? 'var(--rf-saffron)' : 'transparent',
+                      color: isActive ? '#fff' : 'var(--rf-muted)',
+                      borderRadius: 12,
+                      border: isActive ? '2px solid var(--rf-ink)' : '2px solid transparent',
+                    }}
+                  >
+                    <span className="rf-gujarati text-base font-bold leading-none">{tab.gu}</span>
+                    <span className="text-[8px] font-bold uppercase tracking-[0.5px]">{tab.en}</span>
                   </span>
-                  <span className="text-[9px] font-bold mt-0.5" style={{ color: isActive ? '#8B5CF6' : '#9ca3af' }}>Guju AI</span>
                 </button>
               );
-            }
-
-            return (
-              <button key={id} onClick={() => setActiveTab(id)}
-                className={`flex-1 py-2 flex flex-col items-center gap-0.5 transition-colors ${isActive ? 'text-amber-600' : 'text-gray-400'}`}>
-                <span className="text-lg">{item.icon}</span>
-                <span className="text-[9px] font-bold">{item.label}</span>
-              </button>
-            );
-          })}
+            })}
+          </div>
         </div>
       </nav>
     </div>

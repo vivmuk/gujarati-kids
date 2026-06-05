@@ -10,7 +10,7 @@ export async function veniceChat(messages: Array<{role: string; content: string}
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: options.model || 'zai-org-glm-5-1',
+      model: options.model || 'openai-gpt-4o-mini-2024-07-18',
       messages,
       temperature: options.temperature || 0.7,
       max_completion_tokens: options.max_tokens || 2048,
@@ -66,8 +66,8 @@ export async function veniceTranscribe(audioBlob: Blob, options: Record<string, 
 }
 
 export async function veniceImageGenerate(prompt: string, options: Record<string, unknown> = {}) {
-  // 1990s Indian school textbook style — applied to every generated frame
-  const styledPrompt = `1990s Indian school textbook illustration style, hand-drawn watercolor look, warm earthy tones, simple clean lines, flat perspective, educational diagram aesthetic, muted colors on off-white paper background: ${prompt}`;
+  // Riso-Folk style applied to every generated frame.
+  const styledPrompt = `Two-colour risograph Gujarati folk illustration, Ajrakh block-print accents, garba textile rhythm, saffron and indigo ink, hand-drawn 1990s Indian textbook clarity, clean line art, soft paper texture, light cream or white background, centered composition with the full subject visible and generous padding, no cropping: ${prompt}`;
 
   const res = await fetch(`${VENICE_BASE_URL}/image/generate`, {
     method: 'POST',
@@ -76,8 +76,8 @@ export async function veniceImageGenerate(prompt: string, options: Record<string
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      // grok-imagine for everything — consistent 90s textbook style across the app
-      model: options.model || 'grok-imagine-image',
+      // Venice image model picked from the current model list.
+      model: options.model || 'grok-imagine-image-quality',
       prompt: styledPrompt,
       aspect_ratio: options.aspect_ratio || '1:1',
       format: 'webp',

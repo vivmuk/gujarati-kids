@@ -28,7 +28,7 @@
  */
 
 // === STYLE & MODEL CONSTANTS (edit here to re-skin the app) ===
-const IMAGE_MODEL = 'grok-imagine-image';
+const IMAGE_MODEL = process.env.VENICE_IMAGE_MODEL || 'grok-imagine-image-quality';
 const IMAGE_ASPECT_RATIO = '1:1';
 const IMAGE_FORMAT = 'webp';
 const IMAGE_SAFE_MODE = true;
@@ -39,9 +39,9 @@ const TTS_SPEED = 0.9;
 const TTS_LANG_GUJARATI = 'gu';
 const TTS_LANG_LATIN = 'en';
 
-// Prepended to every image prompt — 1990s Indian school textbook style.
+// Prepended to every image prompt — Riso-Folk Gujarati folk style.
 const STYLE_PREFIX =
-  '1990s Indian school textbook illustration style, hand-drawn watercolor look, warm earthy tones, simple clean lines, flat perspective, educational diagram aesthetic, muted colors on off-white paper background:';
+  'Two-colour risograph Gujarati folk illustration, Ajrakh block-print accents, garba textile rhythm, saffron and indigo ink, hand-drawn 1990s Indian textbook clarity, clean line art, soft paper texture, light cream or white background, centered composition with the full subject visible and generous padding, no cropping:';
 
 import * as fs from 'fs';
 import * as path from 'path';
@@ -106,7 +106,6 @@ async function loadData() {
   }
 
   // Evaluate the extracted arrays in an isolated scope
-  // eslint-disable-next-line no-new-func
   const fn = new Function(`
     const swar = ${extractArray('swar')};
     const vyanjan = ${extractArray('vyanjan')};
@@ -185,7 +184,7 @@ async function generateImage(prompt: string, filePath: string, retries = 3): Pro
         continue;
       }
 
-      const data = await res.json();
+      const data = await res.json() as { images?: string[] };
       if (!data.images?.[0]) {
         console.error(`  No image returned for "${prompt}"`);
         if (attempt < retries - 1) await sleep(3000);
@@ -198,8 +197,7 @@ async function generateImage(prompt: string, filePath: string, retries = 3): Pro
 
       // Try to convert JPEG -> WebP with sharp
       try {
-        const sharpMod = await import('sharp');
-        const sharp = (sharpMod as any).default || sharpMod;
+        const { default: sharp } = await import('sharp');
         const webpBuffer = await sharp(imgBuffer).webp({ quality: 90 }).toBuffer();
         fs.writeFileSync(filePath, webpBuffer);
         console.log(`  ✓ Image: ${path.relative(PROJECT_ROOT, filePath)} (${webpBuffer.length} bytes, converted to webp)`);

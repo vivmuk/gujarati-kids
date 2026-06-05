@@ -2,12 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
-const VENICE_MODEL = 'grok-imagine-reference-to-video';
-const VIDEO_DURATION = '5s';
+const VENICE_MODEL = process.env.VENICE_VIDEO_MODEL || 'seedance-2-0-fast-reference-to-video';
+const VIDEO_DURATION = '4s';
 const ASPECT_RATIO = '1:1';
 const RESOLUTION = '480p';
+const GENERATE_AUDIO = false;
 const POLL_INTERVAL_MS = 10_000;
-const MAX_POLL_MS = 120_000;
+const MAX_POLL_MS = 180_000;
 
 function getBaseUrl(): string {
   return process.env.VENICE_BASE_URL || 'https://api.venice.ai/api/v1';
@@ -31,6 +32,27 @@ async function venicePost(endpoint: string, body: Record<string, unknown>) {
   return res;
 }
 
+function videoResponse(videoBuffer: Uint8Array) {
+  const body = new ArrayBuffer(videoBuffer.byteLength);
+  new Uint8Array(body).set(videoBuffer);
+  return new NextResponse(body, {
+    status: 200,
+    headers: {
+      'Content-Type': 'video/mp4',
+      'Content-Length': String(videoBuffer.byteLength),
+      'Cache-Control': 'public, max-age=86400',
+    },
+  });
+}
+
+async function fetchDownloadVideo(downloadUrl: string): Promise<Uint8Array> {
+  const res = await fetch(downloadUrl);
+  if (!res.ok) {
+    throw new Error(`Video download failed: ${res.status}`);
+  }
+  return new Uint8Array(await res.arrayBuffer());
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { imageUrl, prompt } = await req.json();
@@ -47,6 +69,8 @@ export async function POST(req: NextRequest) {
       model: VENICE_MODEL,
       duration: VIDEO_DURATION,
       aspect_ratio: ASPECT_RATIO,
+      resolution: RESOLUTION,
+      audio: GENERATE_AUDIO,
     });
 
     if (!quoteRes.ok) {
@@ -66,6 +90,7 @@ export async function POST(req: NextRequest) {
       duration: VIDEO_DURATION,
       aspect_ratio: ASPECT_RATIO,
       resolution: RESOLUTION,
+      audio: GENERATE_AUDIO,
       reference_image_urls: [imageUrl],
       prompt,
     });
@@ -80,6 +105,7 @@ export async function POST(req: NextRequest) {
 
     const queueData = await queueRes.json();
     const queueId = queueData.queue_id ?? queueData.id;
+    const queuedDownloadUrl = queueData.download_url;
 
     if (!queueId) {
       return NextResponse.json(
@@ -111,8 +137,8 @@ export async function POST(req: NextRequest) {
 
       // Binary MP4 → video is ready
       if (contentType.includes('video/') || contentType.includes('octet-stream')) {
-        const videoBuffer = Buffer.from(await retrieveRes.arrayBuffer());
-        console.log(`[video] Completed – ${videoBuffer.length} bytes`);
+        const videoBuffer = new Uint8Array(await retrieveRes.arrayBuffer());
+        console.log(`[video] Completed – ${videoBuffer.byteLength} bytes`);
 
         // ── Step 4: Complete (fire-and-forget) ────────────────────
         venicePost('/video/complete', {
@@ -120,14 +146,7 @@ export async function POST(req: NextRequest) {
           queue_id: queueId,
         }).catch((e) => console.error('[video] Complete call failed:', e));
 
-        return new NextResponse(videoBuffer, {
-          status: 200,
-          headers: {
-            'Content-Type': 'video/mp4',
-            'Content-Length': String(videoBuffer.length),
-            'Cache-Control': 'public, max-age=86400',
-          },
-        });
+        return videoResponse(videoBuffer);
       }
 
       // JSON response – still processing
@@ -137,9 +156,23 @@ export async function POST(req: NextRequest) {
         statusData.request_status ??
         statusData.state;
 
+      const normalizedStatus = String(status || '').toUpperCase();
+      const downloadUrl = statusData.download_url ?? queuedDownloadUrl;
+
       console.log(`[video] Poll status: ${status}`);
 
-      if (status === 'FAILED' || status === 'ERROR' || status === 'REJECTED') {
+      if ((normalizedStatus === 'COMPLETED' || normalizedStatus === 'SUCCEEDED' || normalizedStatus === 'DONE') && downloadUrl) {
+        const videoBuffer = await fetchDownloadVideo(downloadUrl);
+
+        venicePost('/video/complete', {
+          model: VENICE_MODEL,
+          queue_id: queueId,
+        }).catch((e) => console.error('[video] Complete call failed:', e));
+
+        return videoResponse(videoBuffer);
+      }
+
+      if (normalizedStatus === 'FAILED' || normalizedStatus === 'ERROR' || normalizedStatus === 'REJECTED') {
         // Cleanup on failure
         venicePost('/video/complete', {
           model: VENICE_MODEL,

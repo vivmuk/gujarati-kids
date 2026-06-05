@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState } from 'react';
 import { swar, vyanjan } from '@/data/gujarati';
 import { useSpeak } from './useSpeak';
@@ -54,7 +54,7 @@ export function AlphabetSection({ onLetterLearned }: { onLetterLearned: (letter:
               <img
                 src={getLetterImage(selected.roman)}
                 alt={selected.exampleEnglish}
-                className="w-24 h-24 rounded-xl object-cover flex-shrink-0 border-2 border-white shadow-md"
+                className="w-24 h-24 rounded-xl object-contain flex-shrink-0 border-2 border-white shadow-md"
                 onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
               />
             )}

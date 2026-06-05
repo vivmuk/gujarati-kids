@@ -1,7 +1,8 @@
 'use client';
-import { useState, useRef, useLayoutEffect } from 'react';
+import { useState, useRef, useLayoutEffect, useEffect } from 'react';
 import { useSpeak } from './useSpeak';
 import { SpeakIcon } from './SpeakIcon';
+import { Guju, PlayTriangleIcon } from './RisoFolk';
 
 interface ChatMessage {
   id: string;
@@ -9,6 +10,10 @@ interface ChatMessage {
   content: string;
   image?: string | null; // base64 data URL from grok-imagine
   imageLoading?: boolean; // shows shimmer while the image is being generated
+  imagePrompt?: string | null;
+  video?: string | null;
+  videoLoading?: boolean;
+  videoError?: string | null;
   streaming?: boolean; // true while tokens are still arriving
 }
 
@@ -34,6 +39,10 @@ const IMAGE_LOADING_PLACEHOLDER =
 let uidCounter = 0;
 const uid = () => `m${Date.now()}-${uidCounter++}`;
 
+function imageSrc(image: string): string {
+  return image.startsWith('data:') ? image : `data:image/webp;base64,${image}`;
+}
+
 // Hide the silent `IMAGE: ...` instruction (and any partial marker still being
 // typed at the very end) from what the child sees while tokens stream in.
 function liveVisible(raw: string): string {
@@ -57,9 +66,29 @@ function parseFinal(raw: string): { visible: string; imagePrompt: string | null 
   return { visible: kept.join('\n').trim(), imagePrompt };
 }
 
+function GujuThinking() {
+  return (
+    <div className="flex items-center gap-3 py-1" aria-label="Guju is thinking">
+      <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white">
+        <span className="absolute inset-0 rounded-full border-2 opacity-40 animate-ping" style={{ borderColor: 'var(--rf-saffron)' }} />
+        <Guju size={28} sw={2.3} />
+      </span>
+      <span className="flex items-end gap-1">
+        {[0, 1, 2].map(i => (
+          <span
+            key={i}
+            className="h-2 w-2 rounded-full animate-bounce"
+            style={{ background: i % 2 === 0 ? 'var(--rf-saffron)' : 'var(--rf-indigo)', animationDelay: `${i * 120}ms` }}
+          />
+        ))}
+      </span>
+    </div>
+  );
+}
+
 export function ChatSection() {
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { id: 'greeting', role: 'assistant', content: 'નમસ્તે! 🙏 I\'m ગુજુ (Guju), your Gujarati learning buddy! Ask me anything — words, phrases, grammar, or just chat in Gujarati! 🤖✨' }
+    { id: 'greeting', role: 'assistant', content: 'નમસ્તે! 🙏 I\'m ગુજુ (Guju), your Gujarati learning buddy! Ask me anything — words, phrases, grammar, or just chat in Gujarati!' }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -67,8 +96,16 @@ export function ChatSection() {
   const { speak, currentlyPlaying, ttsLoading } = useSpeak();
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const videoUrlsRef = useRef<string[]>([]);
   const [isRecording, setIsRecording] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+
+  useEffect(() => {
+    return () => {
+      videoUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
+      videoUrlsRef.current = [];
+    };
+  }, []);
 
   // Keep the latest message in view as tokens stream — unless the user scrolled up to read.
   const [autoScroll, setAutoScroll] = useState(true);
@@ -86,6 +123,38 @@ export function ChatSection() {
 
   const patch = (id: string, p: Partial<ChatMessage>) =>
     setMessages(prev => prev.map(m => (m.id === id ? { ...m, ...p } : m)));
+
+  const generateVideo = async (msg: ChatMessage) => {
+    if (!msg.image || msg.videoLoading) return;
+    patch(msg.id, { videoLoading: true, videoError: null });
+
+    try {
+      const subject = msg.imagePrompt || 'the Gujarati learning illustration';
+      const res = await fetch('/api/video', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageUrl: imageSrc(msg.image),
+          prompt: `A gentle Gujarati folk riso-style learning animation of ${subject}. Keep the full subject visible with generous padding, a light cream or white background, subtle friendly motion, no cropping, no new text, no watermark.`,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        throw new Error(err?.error || 'Video generation failed');
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      videoUrlsRef.current.push(url);
+      patch(msg.id, { video: url, videoLoading: false });
+    } catch {
+      patch(msg.id, {
+        videoLoading: false,
+        videoError: 'Video could not be generated for this picture. Try another prompt.',
+      });
+    }
+  };
 
   const sendMessage = async (preset?: string) => {
     const text = (preset ?? input).trim();
@@ -126,7 +195,7 @@ export function ChatSection() {
 
       const { visible, imagePrompt } = parseFinal(acc);
       const finalText = visible || 'Sorry, I couldn\'t understand that. 🙏';
-      patch(botId, { content: finalText, streaming: false, imageLoading: !!imagePrompt });
+      patch(botId, { content: finalText, streaming: false, imageLoading: !!imagePrompt, imagePrompt });
 
       // Auto-speak the reply for early readers.
       if (voiceOn && finalText) speak(finalText, botId);
@@ -199,19 +268,28 @@ export function ChatSection() {
     <div className="flex flex-col h-[calc(100vh-10rem)]">
       {/* Header */}
       <div className="px-4 pt-4 pb-2">
-        <div className="relative rounded-2xl overflow-hidden" style={{ background: 'var(--gradient-berry)' }}>
-          <div className="flex items-center gap-3 p-3 text-white">
-            <span className="text-3xl">🤖</span>
+        <div
+          className="relative overflow-hidden bg-white"
+          style={{ borderRadius: 'var(--rf-radius-card)', border: 'var(--rf-border)', boxShadow: 'var(--rf-shadow-saffron)' }}
+        >
+          <div className="flex items-center gap-3 p-3">
+            <span
+              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white"
+              style={{ border: '2px solid var(--rf-ink)', boxShadow: '3px 3px 0 var(--rf-indigo)' }}
+            >
+              <Guju size={36} sw={2.5} />
+            </span>
             <div className="flex-1">
-              <p className="font-bold">Guju AI</p>
-              <p className="text-white/70 text-xs" style={{ fontFamily: 'var(--font-gujarati)' }}>ગુજુ - તમારો ગુજરાતી મિત્ર</p>
+              <p className="font-bold" style={{ color: 'var(--rf-indigo)' }}>Guju</p>
+              <p className="text-xs" style={{ fontFamily: 'var(--font-gujarati)', color: 'var(--rf-muted)' }}>ગુજુ - તમારો ગુજરાતી મિત્ર</p>
             </div>
             {/* Auto-speak toggle */}
             <button
               onClick={() => setVoiceOn(v => !v)}
               aria-label={voiceOn ? 'Turn voice off' : 'Turn voice on'}
               title={voiceOn ? 'Voice on — Guju reads replies aloud' : 'Voice off'}
-              className="w-9 h-9 rounded-full flex items-center justify-center bg-white/20 hover:bg-white/30 transition-colors"
+              className="w-9 h-9 rounded-full flex items-center justify-center transition-colors"
+              style={{ background: voiceOn ? 'var(--rf-saffron)' : 'var(--rf-cream)', color: voiceOn ? '#fff' : 'var(--rf-ink)', border: '2px solid var(--rf-ink)' }}
             >
               {voiceOn ? '🔊' : '🔇'}
             </button>
@@ -232,26 +310,69 @@ export function ChatSection() {
             <div key={msg.id} className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
               <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 ${isUser ? 'text-white rounded-br-md' : 'glass-card rounded-bl-md'}`}
                 style={isUser ? { background: 'var(--gradient-saffron)' } : {}}>
-                <p className="text-sm whitespace-pre-wrap">
-                  {msg.content}
-                  {msg.streaming && <span className="inline-block w-1.5 h-4 ml-0.5 align-middle bg-amber-400 animate-pulse rounded-sm" />}
-                </p>
+                {!isUser && msg.streaming && !msg.content ? (
+                  <GujuThinking />
+                ) : (
+                  <p className="text-sm whitespace-pre-wrap">
+                    {msg.content}
+                    {msg.streaming && <span className="inline-block w-1.5 h-4 ml-0.5 align-middle rounded-sm animate-pulse" style={{ background: 'var(--rf-saffron)' }} />}
+                  </p>
+                )}
 
-                {/* Generated illustration from grok-imagine — 90s Indian textbook style */}
+                {/* Generated Venice illustration, kept fully visible for kids. */}
                 {!isUser && (msg.image || msg.imageLoading) && (
-                  <div className="mt-2 rounded-xl overflow-hidden border-2 border-amber-200 bg-amber-50">
+                  <div
+                    className="mt-2 overflow-hidden rounded-xl bg-white"
+                    style={{ border: '2px solid var(--rf-ink)' }}
+                  >
                     {msg.image ? (
                       <img
-                        src={msg.image.startsWith('data:') ? msg.image : `data:image/webp;base64,${msg.image}`}
+                        src={imageSrc(msg.image)}
                         alt="Guju's illustration"
-                        className="w-full h-auto object-cover"
+                        className="h-auto max-h-72 w-full object-contain p-2"
                         loading="lazy"
                       />
                     ) : (
                       <img
                         src={IMAGE_LOADING_PLACEHOLDER}
                         alt="drawing..."
-                        className="w-full h-32 object-cover animate-pulse"
+                        className="h-32 w-full object-contain p-2 animate-pulse"
+                      />
+                    )}
+                  </div>
+                )}
+
+                {!isUser && msg.image && (
+                  <div className="mt-2">
+                    {!msg.video && (
+                      <button
+                        type="button"
+                        onClick={() => generateVideo(msg)}
+                        disabled={msg.videoLoading}
+                        className="inline-flex min-h-9 items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-bold transition-all active:scale-95 disabled:opacity-60"
+                        style={{
+                          background: 'var(--rf-saffron)',
+                          color: '#fff',
+                          border: '2px solid var(--rf-ink)',
+                          boxShadow: '2px 2px 0 var(--rf-ink)',
+                        }}
+                      >
+                        <PlayTriangleIcon className="h-3.5 w-3.5" />
+                        {msg.videoLoading ? 'Making video...' : 'Make video'}
+                      </button>
+                    )}
+                    {msg.videoError && (
+                      <p className="mt-1 text-[11px] font-semibold" style={{ color: 'var(--rf-saffron)' }}>
+                        {msg.videoError}
+                      </p>
+                    )}
+                    {msg.video && (
+                      <video
+                        src={msg.video}
+                        controls
+                        playsInline
+                        className="mt-2 max-h-72 w-full rounded-xl bg-white object-contain"
+                        style={{ border: '2px solid var(--rf-ink)' }}
                       />
                     )}
                   </div>

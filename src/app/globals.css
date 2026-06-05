@@ -2,6 +2,22 @@
 
 /* ============ DESIGN TOKENS ============ */
 :root {
+  /* Riso-Folk inks */
+  --rf-saffron: #ef5a23;
+  --rf-indigo: #1d3c6e;
+  --rf-ink: #241c12;
+  --rf-cream: #f6efdd;
+  --rf-card: #ffffff;
+  --rf-muted: rgba(36, 28, 18, 0.55);
+  --rf-saffron-pale: #f6d9a8;
+  --rf-border: 2.5px solid var(--rf-ink);
+  --rf-shadow-saffron: 4px 4px 0 var(--rf-saffron);
+  --rf-shadow-indigo: 4px 4px 0 var(--rf-indigo);
+  --rf-shadow-ink: 3px 3px 0 var(--rf-ink);
+  --rf-radius-card: 18px;
+  --rf-radius-hero: 22px;
+  --rf-radius-tile-img: 12px;
+
   /* Saffron-inspired palette */
   --saffron-50: #FFFBF5;
   --saffron-100: #FFF5E8;
@@ -54,7 +70,7 @@
 
   /* Typography */
   --font-gujarati: 'Noto Sans Gujarati', sans-serif;
-  --font-display: 'Nunito', 'Noto Sans Gujarati', sans-serif;
+  --font-display: 'Space Grotesk', 'Nunito', 'Noto Sans Gujarati', sans-serif;
 
   /* Safe area */
   --safe-top: env(safe-area-inset-top, 0px);
@@ -74,8 +90,8 @@ html {
 
 body {
   font-family: var(--font-display);
-  background: var(--saffron-50);
-  color: #1F2937;
+  background: var(--rf-cream);
+  color: var(--rf-ink);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overscroll-behavior: none;
@@ -162,6 +178,33 @@ body {
 
 .speak-btn:hover::after {
   opacity: 1;
+}
+
+/* ============ RISO-FOLK ============ */
+.rf-card {
+  background: var(--rf-card);
+  border: var(--rf-border);
+  border-radius: var(--rf-radius-card);
+}
+
+.rf-pressable {
+  transition: transform 160ms ease, box-shadow 160ms ease, filter 160ms ease;
+}
+
+.rf-pressable:active {
+  transform: translate(2px, 2px) scale(0.98);
+  box-shadow: 2px 2px 0 var(--rf-ink) !important;
+}
+
+.rf-gujarati {
+  font-family: var(--font-gujarati);
+  letter-spacing: 0;
+}
+
+.rf-image-contain {
+  object-fit: contain;
+  object-position: center;
+  background: var(--rf-card);
 }
 
 /* ============ BOTTOM NAV ============ */

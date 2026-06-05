@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
-// 1990s Indian school textbook style — applied to every generated image.
+// Riso-Folk style, applied to every generated image.
 // See docs/STYLE_GUIDE.md for how to change this globally.
 const STYLE_PREFIX =
-  '1990s Indian school textbook illustration style, hand-drawn watercolor look, warm earthy tones, simple clean lines, flat perspective, educational diagram aesthetic, muted colors on off-white paper background:';
+  'Two-colour risograph Gujarati folk illustration, Ajrakh block-print accents, garba textile rhythm, saffron and indigo ink, hand-drawn 1990s Indian textbook clarity, clean line art, soft paper texture, light cream or white background, centered composition with the full subject visible and generous padding, no cropping:';
 
 export async function POST(req: NextRequest) {
   try {
@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'grok-imagine-image',
+        model: process.env.VENICE_IMAGE_MODEL || 'grok-imagine-image-quality',
         prompt: `${STYLE_PREFIX} ${prompt}`,
         aspect_ratio: '1:1',
         format: 'webp',

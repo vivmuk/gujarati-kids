@@ -3,10 +3,10 @@ import { NextRequest } from 'next/server';
 export const dynamic = 'force-dynamic';
 
 // Chat model is env-configurable so it's trivial to swap to whichever Venice
-// model gives the best Gujarati without touching code. Defaults to the strong
-// multilingual model Venice's docs use as their canonical chat example (also
-// the default in src/lib/venice.ts) so the whole app stays on one model.
-const CHAT_MODEL = process.env.VENICE_CHAT_MODEL || 'zai-org-glm-5-1';
+// model gives the best Gujarati without touching code. This default returns
+// visible content quickly; larger reasoning models can spend the token budget
+// in `reasoning_content`, which makes the child-facing stream look empty.
+const CHAT_MODEL = process.env.VENICE_CHAT_MODEL || 'openai-gpt-4o-mini-2024-07-18';
 
 const SYSTEM_PROMPT = `You are ગુજુ (Guju), a warm, playful Gujarati tutor for children aged 4-12.
 You teach with the Natural Approach / Comprehensible Input method: simple, visual, lots of encouragement.
@@ -16,8 +16,9 @@ HOW TO REPLY:
 2. For every new Gujarati word, use this shape: ગુજરાતી (romanization) — English meaning. Example: બિલાડી (bilāḍī) — cat.
 3. Keep it short and lively — under 60 words. Use friendly emojis.
 4. Match the child's level: if they write in English, lead with English; if they write Gujarati, lead with Gujarati.
-5. Gently model the correct form when they make a mistake — never scold.
-6. Weave in Gujarat culture when natural: Navratri, Garba, Uttarayan, Dhokla, Rani ki Vav, etc.
+5. Prefer common, natural, gender-neutral Gujarati phrasing when possible. Example: "I am hungry" → મને ભૂખ લાગી છે (mane bhūkh lāgī chhe).
+6. Gently model the correct form when they make a mistake — never scold.
+7. Weave in Gujarat culture when natural: Navratri, Garba, Uttarayan, Dhokla, Rani ki Vav, etc.
 
 ILLUSTRATION:
 If a simple picture would genuinely help the child (a new animal, object, food, place, festival, or "what is X?" / "show me X"),
@@ -68,12 +69,12 @@ export async function POST(req: NextRequest) {
         model: CHAT_MODEL,
         messages,
         temperature: 0.8,
-        max_completion_tokens: 800,
-        stream: true,
+        max_completion_tokens: 500,
+        stream: false,
       }),
     });
 
-    if (!upstream.ok || !upstream.body) {
+    if (!upstream.ok) {
       const errText = await upstream.text().catch(() => '');
       return new Response(JSON.stringify({ error: `Chat failed: ${upstream.status}`, details: errText }), {
         status: upstream.status || 500,
@@ -81,46 +82,14 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Re-stream Venice's SSE as a plain text token stream the browser can read
-    // incrementally. We parse `data:` lines and forward only the delta content.
-    const encoder = new TextEncoder();
-    const decoder = new TextDecoder();
-    const reader = upstream.body.getReader();
-    let buffer = '';
+    const data = await upstream.json();
+    const content =
+      typeof data.choices?.[0]?.message?.content === 'string'
+        ? data.choices[0].message.content.trim()
+        : '';
+    const reply = content || 'માફ કરજો! I need one more try. Ask me again?';
 
-    const stream = new ReadableStream<Uint8Array>({
-      async pull(controller) {
-        const { done, value } = await reader.read();
-        if (done) {
-          controller.close();
-          return;
-        }
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-        for (const line of lines) {
-          const trimmed = line.trim();
-          if (!trimmed.startsWith('data:')) continue;
-          const data = trimmed.slice(5).trim();
-          if (data === '[DONE]') {
-            controller.close();
-            return;
-          }
-          try {
-            const json = JSON.parse(data);
-            const delta = json.choices?.[0]?.delta?.content;
-            if (delta) controller.enqueue(encoder.encode(delta));
-          } catch {
-            // ignore keep-alive / non-JSON lines
-          }
-        }
-      },
-      cancel() {
-        reader.cancel().catch(() => {});
-      },
-    });
-
-    return new Response(stream, {
+    return new Response(reply, {
       headers: {
         'Content-Type': 'text/plain; charset=utf-8',
         'Cache-Control': 'no-cache, no-transform',

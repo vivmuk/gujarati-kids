@@ -62,12 +62,13 @@ Based on **Stephen Krashen's Natural Approach**:
 
 - **Framework**: Next.js 16 (App Router, TypeScript)
 - **Styling**: Tailwind CSS with custom animations
-- **Fonts**: Noto Sans Gujarati + Nunito
+- **Fonts**: Noto Sans Gujarati + Space Grotesk
 - **AI Engine**: [Venice.ai API](https://venice.ai)
   - **TTS**: `tts-xai-v1` (eve voice, `language: 'gu'` for proper Gujarati pronunciation)
   - **STT**: `openai/whisper-large-v3` (Gujarati language detection)
-  - **Chat**: `minimax-m3` (bilingual tutor)
-  - **Image Gen**: `grok-imagine-image` (90s Indian textbook style, safe mode)
+  - **Chat**: `openai-gpt-4o-mini-2024-07-18` (fast bilingual tutor through Venice)
+  - **Image Gen**: `grok-imagine-image-quality` (Riso-Folk Gujarati folk style, safe mode)
+  - **Video Gen**: `seedance-2-0-fast-reference-to-video` (short square animations from generated lesson images)
 - **Data**: 200+ curated Gujarati learning items
 
 ## 🚀 Getting Started
@@ -97,6 +98,8 @@ cp .env.example .env.local
 ```env
 VENICE_API_KEY=your_venice_api_key_here
 VENICE_BASE_URL=https://api.venice.ai/api/v1
+VENICE_IMAGE_MODEL=grok-imagine-image-quality
+VENICE_VIDEO_MODEL=seedance-2-0-fast-reference-to-video
 ```
 
 ### Run
@@ -127,7 +130,8 @@ src/
 │   ├── api/
 │   │   ├── tts/route.ts        # Text-to-speech endpoint (xAI)
 │   │   ├── transcribe/route.ts # Speech-to-text endpoint
-│   │   ├── image/route.ts      # Image generation endpoint (grok-imagine)
+│   │   ├── image/route.ts      # Image generation endpoint (Venice)
+│   │   ├── video/route.ts      # Video generation endpoint (Venice)
 │   │   └── chat/route.ts       # AI tutor chat endpoint (with inline illustrations)
 │   ├── globals.css             # Custom animations & kid-friendly styles
 │   ├── layout.tsx              # Root layout with Gujarati fonts

@@ -25,18 +25,54 @@ const PUBLIC_DIR = path.join(PROJECT_ROOT, 'public');
 const IMAGE_DIR = path.join(PUBLIC_DIR, 'images', 'gen');
 
 // === STYLE & MODEL CONSTANTS (edit here to re-skin the app) ===
-const IMAGE_MODEL = 'grok-imagine-image';
+const IMAGE_MODEL = process.env.VENICE_IMAGE_MODEL || 'grok-imagine-image-quality';
 const IMAGE_ASPECT_RATIO = '1:1';
 const IMAGE_FORMAT = 'webp';
 const IMAGE_SAFE_MODE = true;
 
-// Prepended to every image prompt — 1990s Indian school textbook style.
+// Prepended to every image prompt — Riso-Folk Gujarati folk style.
 const STYLE_PREFIX =
-  '1990s Indian school textbook illustration style, hand-drawn watercolor look, warm earthy tones, simple clean lines, flat perspective, educational diagram aesthetic, muted colors on off-white paper background:';
+  'Two-colour risograph Gujarati folk illustration, Ajrakh block-print accents, garba textile rhythm, saffron and indigo ink, hand-drawn 1990s Indian textbook clarity, clean line art, soft paper texture, light cream or white background, centered composition with the full subject visible and generous padding, no cropping:';
 
 function sleep(ms: number) { return new Promise(r => setTimeout(r, ms)); }
 
-async function loadData() {
+interface LetterData {
+  gujarati: string;
+  roman: string;
+  exampleEnglish: string;
+}
+
+interface WordData {
+  gujarati: string;
+  roman: string;
+  english: string;
+}
+
+interface PhraseData {
+  gujarati: string;
+  roman: string;
+  english: string;
+}
+
+interface StoryData {
+  id: string;
+  titleEnglish: string;
+  lines: Array<{ english: string }>;
+}
+
+interface GujaratiData {
+  swar: LetterData[];
+  vyanjan: LetterData[];
+  words: WordData[];
+  phrases: PhraseData[];
+  stories: StoryData[];
+}
+
+interface ImageResponse {
+  images?: string[];
+}
+
+async function loadData(): Promise<GujaratiData> {
   const srcPath = path.join(PROJECT_ROOT, 'src', 'data', 'gujarati.ts');
   const src = fs.readFileSync(srcPath, 'utf-8');
   function extractArray(name: string): string {
@@ -56,7 +92,6 @@ async function loadData() {
     }
     return '[]';
   }
-  // eslint-disable-next-line no-new-func
   const fn = new Function(`
     const swar = ${extractArray('swar')};
     const vyanjan = ${extractArray('vyanjan')};
@@ -64,7 +99,7 @@ async function loadData() {
     const phrases = ${extractArray('phrases')};
     const stories = ${extractArray('stories')};
     return { swar, vyanjan, words, phrases, stories };
-  `);
+  `) as () => GujaratiData;
   return fn();
 }
 
@@ -73,7 +108,7 @@ interface Job {
   prompt: string;
 }
 
-function buildJobs(data: any, workerIndex: number, totalWorkers: number): Job[] {
+function buildJobs(data: GujaratiData, workerIndex: number, totalWorkers: number): Job[] {
   const jobs: Job[] = [];
   // Letters
   for (const letter of [...data.swar, ...data.vyanjan]) {
@@ -138,15 +173,14 @@ async function generateImage(prompt: string, filePath: string, retries = 3): Pro
         if (attempt < retries - 1) await sleep(3000 * (attempt + 1));
         continue;
       }
-      const data: any = await res.json();
+      const data = await res.json() as ImageResponse;
       if (!data.images?.[0]) {
         if (attempt < retries - 1) await sleep(3000);
         continue;
       }
       const imgBuffer = Buffer.from(data.images[0], 'base64');
       try {
-        const sharpMod: any = await import('sharp');
-        const sharp = sharpMod.default || sharpMod;
+        const { default: sharp } = await import('sharp');
         const webpBuffer = await sharp(imgBuffer).webp({ quality: 90 }).toBuffer();
         fs.writeFileSync(filePath, webpBuffer);
       } catch {

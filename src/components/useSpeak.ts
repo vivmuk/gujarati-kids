@@ -43,7 +43,12 @@ export function useSpeak() {
         const res = await fetch('/api/tts', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: textOrPath }),
+          body: JSON.stringify({
+            text: textOrPath,
+            model: 'tts-xai-v1',
+            voice: 'eve',
+            speed: 0.9,
+          }),
         });
         if (!res.ok) throw new Error('TTS failed');
         const blob = await res.blob();

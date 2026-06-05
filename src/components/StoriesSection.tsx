@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState } from 'react';
 import { stories, type StoryItem } from '@/data/gujarati';
 import { useSpeak } from './useSpeak';
@@ -21,7 +21,7 @@ export function StoriesSection() {
           <img
             src={getStoryLineImage(activeStory.id, -1) || `/images/gen/story-${activeStory.id}.webp`}
             alt={activeStory.titleEnglish}
-            className="w-full h-40 object-cover rounded-2xl mb-4 shadow-md"
+            className="w-full h-40 object-contain rounded-2xl mb-4 shadow-md"
             onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
           />
         ) : null}
@@ -46,7 +46,7 @@ export function StoriesSection() {
                   <img
                     src={lineImg}
                     alt={line.english}
-                    className="w-20 h-20 rounded-xl object-cover flex-shrink-0 border-2 border-white shadow-sm"
+                    className="w-20 h-20 rounded-xl object-contain flex-shrink-0 border-2 border-white shadow-sm"
                     onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                   />
                 )}
@@ -82,7 +82,7 @@ export function StoriesSection() {
     <div className="px-4 pt-4 pb-6 animate-fade-in">
       <div className="relative rounded-2xl overflow-hidden mb-4" style={{ background: 'var(--gradient-berry)' }}>
         <div className="flex items-center gap-3 p-4 text-white">
-          <img src="/images/story.webp" alt="" className="w-14 h-14 rounded-xl object-cover border-2 border-white/30" />
+          <img src="/images/story.webp" alt="" className="w-14 h-14 rounded-xl object-contain border-2 border-white/30" />
           <div>
             <p className="font-bold text-lg">Stories</p>
             <p className="text-white/70 text-xs" style={{ fontFamily: 'var(--font-gujarati)' }}>વાર્તાઓ</p>

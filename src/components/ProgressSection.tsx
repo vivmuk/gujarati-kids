@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { swar, vyanjan, words, phrases, stories } from '@/data/gujarati';
 
 interface ProgressState {
@@ -38,7 +38,7 @@ export function ProgressSection({ progress }: { progress: ProgressState }) {
       {/* Header */}
       <div className="relative rounded-2xl overflow-hidden mb-4" style={{ background: 'var(--gradient-forest)' }}>
         <div className="flex items-center gap-3 p-4 text-white">
-          <img src="/images/progress.webp" alt="" className="w-14 h-14 rounded-xl object-cover border-2 border-white/30" />
+          <img src="/images/progress.webp" alt="" className="w-14 h-14 rounded-xl object-contain border-2 border-white/30" />
           <div>
             <p className="font-bold text-lg">Your Progress</p>
             <p className="text-white/70 text-xs" style={{ fontFamily: 'var(--font-gujarati)' }}>તમારી પ્રગતિ</p>

@@ -2,20 +2,22 @@
 
 This document is the **source of truth** for the visual + audio style used in ગુજરાતી શીખો. Every image and audio file in the app is generated using the rules below. If you want to make additional edits while keeping the same look-and-feel, follow the patterns in this file.
 
-> **TL;DR** — All images use `grok-imagine-image` with a single global *style prefix* prepended to every prompt. All audio uses `tts-xai-v1` with the `eve` voice and `language: "gu"` ISO hint. To change style globally, edit the constants in the four files listed in [§ 6](#6-changing-the-global-style).
+> **TL;DR** — All images use `grok-imagine-image-quality` with a single global *style prefix* prepended to every prompt. All audio uses `tts-xai-v1` with the `eve` voice and `language: "gu"` ISO hint. To change style globally, edit the constants in the four files listed in [§ 6](#6-changing-the-global-style).
 
 ---
 
 ## 1. Visual style
 
-**Theme:** 1990s Indian school textbook illustration — hand-drawn watercolor look, warm earthy tones, simple clean lines, flat perspective, educational diagram aesthetic, muted colors on off-white paper background.
+**Theme:** Riso-Folk Gujarati learning art — two-colour risograph print personality, Ajrakh-inspired block-print accents, saffron and indigo inks, 1990s Indian textbook clarity, soft paper texture, and a light cream/white background. Subjects should be centered with generous padding so the full object or character remains visible.
 
 The exact style prefix (prepended to every image prompt) is:
 
 ```
-1990s Indian school textbook illustration style, hand-drawn watercolor look,
-warm earthy tones, simple clean lines, flat perspective, educational diagram
-aesthetic, muted colors on off-white paper background:
+Two-colour risograph Gujarati folk illustration, Ajrakh block-print accents,
+garba textile rhythm, saffron and indigo ink, hand-drawn 1990s Indian textbook
+clarity, clean line art, soft paper texture, light cream or white background,
+centered composition with the full subject visible and generous padding, no
+cropping:
 ```
 
 **Why this matters:** every prompt sent to the image API must start with this prefix, or the generated image will drift away from the app's visual identity.
@@ -34,7 +36,7 @@ For Latin-script text (English words, story titles, etc.) the language hint is `
 
 | Setting | Value |
 |---|---|
-| Image model | `grok-imagine-image` |
+| Image model | `grok-imagine-image-quality` |
 | Aspect ratio | `1:1` |
 | Format | `webp` (grok-imagine actually returns JPEG; we re-encode via `sharp`) |
 | `safe_mode` | `true` |
@@ -43,6 +45,9 @@ For Latin-script text (English words, story titles, etc.) the language hint is `
 | TTS voice | `eve` |
 | TTS speed | `0.9` |
 | TTS language | `gu` (Gujarati script) or `en` (Latin script) |
+| Video model | `seedance-2-0-fast-reference-to-video` |
+| Video duration | `4s` |
+| Video resolution | `480p`, `1:1`, audio disabled |
 
 ## 4. Prompt templates by category
 
@@ -57,7 +62,7 @@ simple labeled educational illustration
 
 **Example (full prompt actually sent to the API):**
 
-> 1990s Indian school textbook illustration style, hand-drawn watercolor look, warm earthy tones, simple clean lines, flat perspective, educational diagram aesthetic, muted colors on off-white paper background: **a pomegranate (for Gujarati letter અ = "a"), simple labeled educational illustration**
+> Two-colour risograph Gujarati folk illustration, Ajrakh block-print accents, garba textile rhythm, saffron and indigo ink, hand-drawn 1990s Indian textbook clarity, clean line art, soft paper texture, light cream or white background, centered composition with the full subject visible and generous padding, no cropping: **a pomegranate (for Gujarati letter અ = "a"), simple labeled educational illustration**
 
 ### 4b. Words
 
@@ -68,7 +73,7 @@ Gujarati text, educational vocabulary illustration
 
 **Example:**
 
-> 1990s Indian school textbook illustration style, hand-drawn watercolor look, warm earthy tones, simple clean lines, flat perspective, educational diagram aesthetic, muted colors on off-white paper background: **a cow (ગાય), labeled with both English and Gujarati text, educational vocabulary illustration**
+> Two-colour risograph Gujarati folk illustration, Ajrakh block-print accents, garba textile rhythm, saffron and indigo ink, hand-drawn 1990s Indian textbook clarity, clean line art, soft paper texture, light cream or white background, centered composition with the full subject visible and generous padding, no cropping: **a cow (ગાય), labeled with both English and Gujarati text, educational vocabulary illustration**
 
 ### 4c. Phrases
 
@@ -79,7 +84,7 @@ labeled bilingual educational illustration
 
 **Example:**
 
-> 1990s Indian school textbook illustration style, hand-drawn watercolor look, warm earthy tones, simple clean lines, flat perspective, educational diagram aesthetic, muted colors on off-white paper background: **illustration of "Hello" concept, person saying "નમસ્તે", labeled bilingual educational illustration**
+> Two-colour risograph Gujarati folk illustration, Ajrakh block-print accents, garba textile rhythm, saffron and indigo ink, hand-drawn 1990s Indian textbook clarity, clean line art, soft paper texture, light cream or white background, centered composition with the full subject visible and generous padding, no cropping: **illustration of "Hello" concept, person saying "નમસ્તે", labeled bilingual educational illustration**
 
 ### 4d. Story hero (one per story)
 
@@ -97,11 +102,11 @@ clear for children
 
 **Example:**
 
-> 1990s Indian school textbook illustration style, hand-drawn watercolor look, warm earthy tones, simple clean lines, flat perspective, educational diagram aesthetic, muted colors on off-white paper background: **illustration of: A mouse ran., Gujarati story scene, simple and clear for children**
+> Two-colour risograph Gujarati folk illustration, Ajrakh block-print accents, garba textile rhythm, saffron and indigo ink, hand-drawn 1990s Indian textbook clarity, clean line art, soft paper texture, light cream or white background, centered composition with the full subject visible and generous padding, no cropping: **illustration of: A mouse ran., Gujarati story scene, simple and clear for children**
 
 ## 5. AI chat illustrations
 
-The `/api/chat` route also uses `grok-imagine-image` with the same style prefix. When the LLM decides an image would help the child learn, it returns a short image prompt in its structured response; the route prepends the style prefix and generates the illustration.
+The `/api/chat` route triggers `/api/image`, which uses `grok-imagine-image-quality` with the same style prefix. When the LLM decides an image would help the child learn, it returns a short image prompt in its structured response; the image route prepends the style prefix and generates the illustration. Chat illustrations can then be sent to `/api/video` to produce a short square lesson animation.
 
 **Chat prompt template:**
 
@@ -120,7 +125,7 @@ The style prefix lives in **four files**. To re-skin the app, edit the `STYLE_PR
 | `scripts/pregenerate.cts` | `STYLE_PREFIX` (in `generateImage()`) | Used by the one-shot pregen script |
 | `scripts/pregen-images.cts` | `STYLE_PREFIX` (top of file) | Used by the parallel image pregen |
 | `src/app/api/image/route.ts` | inline in the `prompt:` field | Used by the on-demand image API |
-| `src/app/api/chat/route.ts` | `STYLE_PREFIX` constant + inline in route | Used by the AI chat illustrations |
+| `src/lib/venice.ts` | inline in `veniceImageGenerate()` | Used by shared Venice image client calls |
 
 **TTS settings** (model, voice, language hint) live in:
 
