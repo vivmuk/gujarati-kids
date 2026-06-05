@@ -32,6 +32,10 @@ const NAV_ITEMS: Array<{ id: TabId; label: string; icon: string; img?: string }>
   { id: 'progress', label: 'Progress', icon: '⭐', img: '/images/progress.webp' },
 ];
 
+// Bottom bar order — 'chat' (Guju AI) is centered and rendered as a raised hero.
+// Home stays reachable via the header title; Phrases & Progress via the home grid.
+const BOTTOM_NAV: TabId[] = ['alphabet', 'words', 'chat', 'stories', 'quiz'];
+
 const DEFAULT_PROGRESS: ProgressState = {
   lettersLearned: [],
   wordsLearned: [],
@@ -137,11 +141,12 @@ export default function GujaratiApp() {
         <div className="max-w-lg mx-auto flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">
             {activeTab !== 'home' && (
-              <button onClick={() => setActiveTab('home')} className="text-gray-500 hover:text-gray-800 transition-colors mr-1">←</button>
+              <button onClick={() => setActiveTab('home')} aria-label="Back to home" className="text-gray-500 hover:text-gray-800 transition-colors mr-1">←</button>
             )}
-            <span className="text-xl font-black" style={{ color: 'var(--saffron-600)' }}>
-              {NAV_ITEMS.find(n => n.id === activeTab)?.icon} {NAV_ITEMS.find(n => n.id === activeTab)?.label}
-            </span>
+            {/* Title doubles as a Home button so Home is always reachable from the bar-less header */}
+            <button onClick={() => setActiveTab('home')} className="text-xl font-black" style={{ color: 'var(--saffron-600)' }}>
+              {activeTab === 'home' ? '🏠' : NAV_ITEMS.find(n => n.id === activeTab)?.icon} {NAV_ITEMS.find(n => n.id === activeTab)?.label}
+            </button>
           </div>
           <button onClick={() => setActiveTab('progress')} className="text-sm font-bold text-amber-600">
             {progress.wordsLearned.length} ✅
@@ -154,16 +159,36 @@ export default function GujaratiApp() {
         {renderContent()}
       </main>
 
-      {/* Bottom nav */}
+      {/* Bottom nav — Guju AI sits dead-center as an elevated hero button */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 backdrop-blur-xl bg-white/80 border-t border-gray-100">
-        <div className="max-w-lg mx-auto flex">
-          {NAV_ITEMS.slice(0, 5).map(item => (
-            <button key={item.id} onClick={() => setActiveTab(item.id)}
-              className={`flex-1 py-2 flex flex-col items-center gap-0.5 transition-colors ${activeTab === item.id ? 'text-amber-600' : 'text-gray-400'}`}>
-              <span className="text-lg">{item.icon}</span>
-              <span className="text-[9px] font-bold">{item.label}</span>
-            </button>
-          ))}
+        <div className="max-w-lg mx-auto flex items-end justify-around px-1">
+          {BOTTOM_NAV.map(id => {
+            const item = NAV_ITEMS.find(n => n.id === id)!;
+            const isActive = activeTab === id;
+
+            if (id === 'chat') {
+              // Centered, raised AI button
+              return (
+                <button key={id} onClick={() => setActiveTab('chat')} aria-label="Guju AI"
+                  className="flex flex-col items-center -mt-7 flex-shrink-0">
+                  <span
+                    className={`w-14 h-14 rounded-full flex items-center justify-center text-2xl text-white shadow-lg ring-4 ring-white transition-transform active:scale-95 ${isActive ? 'scale-105' : ''}`}
+                    style={{ background: 'var(--gradient-berry)' }}>
+                    🤖
+                  </span>
+                  <span className="text-[9px] font-bold mt-0.5" style={{ color: isActive ? '#8B5CF6' : '#9ca3af' }}>Guju AI</span>
+                </button>
+              );
+            }
+
+            return (
+              <button key={id} onClick={() => setActiveTab(id)}
+                className={`flex-1 py-2 flex flex-col items-center gap-0.5 transition-colors ${isActive ? 'text-amber-600' : 'text-gray-400'}`}>
+                <span className="text-lg">{item.icon}</span>
+                <span className="text-[9px] font-bold">{item.label}</span>
+              </button>
+            );
+          })}
         </div>
       </nav>
     </div>
