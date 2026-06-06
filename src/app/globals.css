@@ -97,7 +97,7 @@ body {
   overscroll-behavior: none;
   min-height: 100dvh;
   padding-top: var(--safe-top);
-  padding-bottom: calc(80px + var(--safe-bottom));
+  padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
 }
 
 /* ============ SCROLLBAR ============ */
@@ -218,7 +218,14 @@ body {
   backdrop-filter: blur(24px) saturate(2);
   -webkit-backdrop-filter: blur(24px) saturate(2);
   border-top: 1px solid rgba(0, 0, 0, 0.05);
-  padding-bottom: var(--safe-bottom);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* ============ CHAT ============ */
+.chat-container {
+  height: calc(100dvh - 112px);
+  display: flex;
+  flex-direction: column;
 }
 
 .nav-item {

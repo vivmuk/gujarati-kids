@@ -4,7 +4,7 @@ import { stories, type StoryItem } from '@/data/gujarati';
 import { useSpeak } from './useSpeak';
 import { SpeakIcon } from './SpeakIcon';
 import { PlayTriangleIcon } from './RisoFolk';
-import { getStoryImage, getStoryLineAudio, getStoryLineImage, getStoryTitleAudio } from '@/data/assets';
+import { getStoryImage, getStoryLineAudio, getStoryLineImage, getStoryTitleAudio, getStoryVideo } from '@/data/assets';
 
 interface Props {
   storiesRead: string[];
@@ -24,11 +24,47 @@ function AssetImage({ src, alt, className, fallback }: AssetImageProps) {
   return <img src={src} alt={alt} className={className} onError={() => setFailed(true)} />;
 }
 
+// Lightbox overlay for full-size story images
+function ImageLightbox({ src, alt, onClose }: { src: string; alt: string; onClose: () => void }) {
+  return (
+    <div
+      className="fixed inset-0 flex items-center justify-center animate-fade-in"
+      style={{ background: 'rgba(0,0,0,0.85)', zIndex: 9999 }}
+      onClick={onClose}
+    >
+      <img
+        src={src}
+        alt={alt}
+        className="max-h-[90vh] max-w-[90vw] rounded-2xl object-contain shadow-2xl"
+        onClick={e => e.stopPropagation()}
+      />
+    </div>
+  );
+}
+
+// Try static video first; fall back to children (generate button) on error
+function StaticVideo({ storyId, fallback }: { storyId: string; fallback: React.ReactNode }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return <>{fallback}</>;
+  return (
+    <video
+      src={getStoryVideo(storyId)}
+      controls
+      playsInline
+      className="max-h-72 w-full rounded-xl bg-white object-contain"
+      style={{ border: '2px solid var(--rf-ink)' }}
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
 type StoryVideoState = Record<string, { url: string | null; loading: boolean; error: string | null }>;
 
 export function StoriesSection({ storiesRead, onStoryRead }: Props) {
   const [activeStory, setActiveStory] = useState<StoryItem | null>(null);
   const [storyVideos, setStoryVideos] = useState<StoryVideoState>({});
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+  const [lightboxAlt, setLightboxAlt] = useState<string>('');
   const videoUrlsRef = useRef<string[]>([]);
   const { speak, currentlyPlaying, ttsLoading } = useSpeak();
 
@@ -93,48 +129,64 @@ export function StoriesSection({ storiesRead, onStoryRead }: Props) {
           ← Back to Stories
         </button>
 
-        <AssetImage
-          src={getStoryImage(activeStory.id)}
-          alt={activeStory.titleEnglish}
-          className="w-full h-40 object-contain rounded-2xl mb-4 shadow-md bg-white"
-          fallback={
-            <div className="mb-4 flex h-40 w-full items-center justify-center rounded-2xl bg-white text-5xl shadow-md">
-              📖
-            </div>
-          }
-        />
+        <button
+          type="button"
+          className="w-full"
+          onClick={() => {
+            const s = getStoryImage(activeStory.id);
+            if (s) { setLightboxSrc(s); setLightboxAlt(activeStory.titleEnglish); }
+          }}
+        >
+          <AssetImage
+            src={getStoryImage(activeStory.id)}
+            alt={activeStory.titleEnglish}
+            className="w-full h-40 object-contain rounded-2xl mb-4 shadow-md bg-white cursor-pointer hover:opacity-90 transition-opacity"
+            fallback={
+              <div className="mb-4 flex h-40 w-full items-center justify-center rounded-2xl bg-white text-5xl shadow-md">
+                📖
+              </div>
+            }
+          />
+        </button>
 
         <div className="mb-4">
-          {!storyVideo?.url && (
-            <button
-              type="button"
-              onClick={() => generateStoryVideo(activeStory)}
-              disabled={storyVideo?.loading}
-              className="inline-flex min-h-10 items-center gap-2 rounded-xl px-3 py-2 text-xs font-black text-white transition-all active:scale-95 disabled:opacity-60"
-              style={{
-                background: 'var(--rf-saffron)',
-                border: '2px solid var(--rf-ink)',
-                boxShadow: '2px 2px 0 var(--rf-ink)',
-              }}
-            >
-              <PlayTriangleIcon className="h-3.5 w-3.5" />
-              {storyVideo?.loading ? 'Making theater...' : 'Story Theater'}
-            </button>
-          )}
-          {storyVideo?.error && (
-            <p className="mt-1 text-[11px] font-semibold" style={{ color: 'var(--rf-saffron)' }}>
-              {storyVideo.error}
-            </p>
-          )}
-          {storyVideo?.url && (
-            <video
-              src={storyVideo.url}
-              controls
-              playsInline
-              className="max-h-72 w-full rounded-xl bg-white object-contain"
-              style={{ border: '2px solid var(--rf-ink)' }}
-            />
-          )}
+          <StaticVideo
+            storyId={activeStory.id}
+            fallback={
+              <>
+                {!storyVideo?.url && (
+                  <button
+                    type="button"
+                    onClick={() => generateStoryVideo(activeStory)}
+                    disabled={storyVideo?.loading}
+                    className="inline-flex min-h-10 items-center gap-2 rounded-xl px-3 py-2 text-xs font-black text-white transition-all active:scale-95 disabled:opacity-60"
+                    style={{
+                      background: 'var(--rf-saffron)',
+                      border: '2px solid var(--rf-ink)',
+                      boxShadow: '2px 2px 0 var(--rf-ink)',
+                    }}
+                  >
+                    <PlayTriangleIcon className="h-3.5 w-3.5" />
+                    {storyVideo?.loading ? 'Making theater...' : 'Story Theater'}
+                  </button>
+                )}
+                {storyVideo?.error && (
+                  <p className="mt-1 text-[11px] font-semibold" style={{ color: 'var(--rf-saffron)' }}>
+                    {storyVideo.error}
+                  </p>
+                )}
+                {storyVideo?.url && (
+                  <video
+                    src={storyVideo.url}
+                    controls
+                    playsInline
+                    className="max-h-72 w-full rounded-xl bg-white object-contain"
+                    style={{ border: '2px solid var(--rf-ink)' }}
+                  />
+                )}
+              </>
+            }
+          />
         </div>
 
         <div className="relative rounded-2xl overflow-hidden mb-4" style={{ background: 'var(--gradient-berry)' }}>
@@ -243,6 +295,8 @@ export function StoriesSection({ storiesRead, onStoryRead }: Props) {
         >
           {storyIsRead ? '✓ Story added to progress' : 'Mark story read'}
         </button>
+
+        {lightboxSrc && <ImageLightbox src={lightboxSrc} alt={lightboxAlt} onClose={() => setLightboxSrc(null)} />}
       </div>
     );
   }
@@ -268,16 +322,25 @@ export function StoriesSection({ storiesRead, onStoryRead }: Props) {
               className={`glass-card w-full text-left p-3 hover:shadow-lg transition-all active:scale-[0.98] ${storyIsRead ? 'ring-2 ring-emerald-200' : ''}`}
             >
               <div className="flex items-center gap-3">
-                <AssetImage
-                  src={getStoryImage(story.id)}
-                  alt={story.titleEnglish}
-                  className="w-20 h-20 rounded-xl object-contain flex-shrink-0 border-2 border-white bg-white shadow-sm"
-                  fallback={
-                    <span className="flex h-20 w-20 flex-shrink-0 items-center justify-center rounded-xl bg-white text-3xl shadow-sm">
-                      📖
-                    </span>
-                  }
-                />
+                <button
+                  type="button"
+                  onClick={e => {
+                    e.stopPropagation();
+                    const s = getStoryImage(story.id);
+                    if (s) { setLightboxSrc(s); setLightboxAlt(story.titleEnglish); }
+                  }}
+                >
+                  <AssetImage
+                    src={getStoryImage(story.id)}
+                    alt={story.titleEnglish}
+                    className="w-20 h-20 rounded-xl object-contain flex-shrink-0 border-2 border-white bg-white shadow-sm cursor-pointer"
+                    fallback={
+                      <span className="flex h-20 w-20 flex-shrink-0 items-center justify-center rounded-xl bg-white text-3xl shadow-sm">
+                        📖
+                      </span>
+                    }
+                  />
+                </button>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="font-bold" style={{ fontFamily: 'var(--font-gujarati)' }}>{story.titleGujarati}</p>
@@ -302,6 +365,8 @@ export function StoriesSection({ storiesRead, onStoryRead }: Props) {
           );
         })}
       </div>
+
+      {lightboxSrc && <ImageLightbox src={lightboxSrc} alt={lightboxAlt} onClose={() => setLightboxSrc(null)} />}
     </div>
   );
 }

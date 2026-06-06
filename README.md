@@ -25,9 +25,9 @@ A beautiful, interactive web app for kids (ages 4–12) to learn Gujarati using 
 - Listen & repeat approach — hear first, then speak
 
 ### 📖 Interactive Stories
-- **10 bilingual stories**, including familiar Indian children's-book classics
+- **30 bilingual stories**, including familiar Indian children's-book classics
 - Comprehensible Input stories: understand Gujarati from context
-- Focus words, story questions, and simple morals for each lesson
+- Simple bilingual lines and clear morals for each lesson
 - Tap the story title or individual lines to hear audio
 
 ### 🎯 Quiz Game

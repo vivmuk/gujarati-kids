@@ -106,3 +106,14 @@ export function getStoryLineAudio(storyId: string, lineIndex: number): string | 
 export function getStoryLineImage(storyId: string, lineIndex: number): string | undefined {
   return imagePaths[`story-${storyId}-line${lineIndex}`];
 }
+
+// Video paths (pre-generated story videos)
+export const videoPaths: Record<string, string> = {};
+for (const story of stories) {
+  videoPaths[`story-${story.id}`] = `/videos/story-${story.id}.mp4`;
+}
+
+// Helper: get pre-generated story video path
+export function getStoryVideo(storyId: string): string {
+  return videoPaths[`story-${storyId}`] || `/videos/story-${storyId}.mp4`;
+}

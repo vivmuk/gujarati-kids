@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState, type MouseEvent } from 'react';
+import { useCallback, useEffect, useMemo, useState, useRef, type MouseEvent } from 'react';
 import { AlphabetSection } from '@/components/AlphabetSection';
 import { WordsSection } from '@/components/WordsSection';
 import { PhrasesSection } from '@/components/PhrasesSection';
@@ -10,7 +10,7 @@ import { ChatSection } from '@/components/ChatSection';
 import { ProgressSection } from '@/components/ProgressSection';
 import { BlockPrintBand, Guju, HalftoneOverlay, PlayTriangleIcon, ProgressRing, Starburst } from '@/components/RisoFolk';
 import { useSpeak } from '@/components/useSpeak';
-import { swar, vyanjan, words, type LetterItem, type WordItem } from '@/data/gujarati';
+import { swar, vyanjan, words, categoryMeta, type LetterItem, type WordItem } from '@/data/gujarati';
 import { getLetterAudio, getLetterImage, getWordImage } from '@/data/assets';
 
 type TabId = 'home' | 'alphabet' | 'words' | 'phrases' | 'stories' | 'quiz' | 'chat' | 'progress';
@@ -44,7 +44,7 @@ const DEFAULT_PROGRESS: ProgressState = {
 
 const SECTION_TILES: Array<{ id: Exclude<TabId, 'home' | 'progress'>; gu: string; en: string; sub: string }> = [
   { id: 'alphabet', gu: 'કક્કો', en: 'Letters', sub: 'સ્વર · વ્યંજન' },
-  { id: 'words', gu: 'શબ્દો', en: 'Words', sub: '8 categories' },
+  { id: 'words', gu: 'શબ્દો', en: 'Words', sub: '9 categories · Surat' },
   { id: 'phrases', gu: 'વાક્યો', en: 'Phrases', sub: 'Say it out loud' },
   { id: 'stories', gu: 'વાર્તા', en: 'Stories', sub: 'Read along' },
   { id: 'quiz', gu: 'રમત', en: 'Quiz', sub: 'Play & win stars' },
@@ -68,6 +68,8 @@ const BOTTOM_TABS: Array<{ id: 'home' | 'alphabet' | 'quiz' | 'chat'; gu: string
   { id: 'quiz', gu: 'રમો', en: 'Play' },
   { id: 'chat', gu: 'ગુજુ', en: 'Guju' },
 ];
+
+const TAB_ORDER: TabId[] = ['home', 'alphabet', 'words', 'phrases', 'stories', 'quiz', 'chat'];
 
 function localISODate(date = new Date()): string {
   const year = date.getFullYear();
@@ -137,6 +139,29 @@ export default function GujaratiApp() {
   const [hasLoadedProgress, setHasLoadedProgress] = useState(false);
   const { speak, currentlyPlaying } = useSpeak();
 
+  const touchStartX = useRef<number>(0);
+  const touchStartY = useRef<number>(0);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    const dy = Math.abs(e.changedTouches[0].clientY - touchStartY.current);
+    // Only horizontal swipes (not scrolls)
+    if (Math.abs(dx) < 60 || dy > Math.abs(dx) * 0.8) return;
+    const currentIndex = TAB_ORDER.indexOf(activeTab);
+    if (dx < 0 && currentIndex < TAB_ORDER.length - 1) {
+      // swipe left = go forward
+      setActiveTab(TAB_ORDER[currentIndex + 1]);
+    } else if (dx > 0 && currentIndex > 0) {
+      // swipe right = go back
+      setActiveTab(TAB_ORDER[currentIndex - 1]);
+    }
+  };
+
   useEffect(() => {
     let nextProgress = DEFAULT_PROGRESS;
     try {
@@ -201,6 +226,11 @@ export default function GujaratiApp() {
   }, [progress.lastLesson, progress.lettersLearned]);
 
   const dailyWord = useMemo(() => wordOfTheDay(), []);
+
+  const featuredWords = useMemo(() => {
+    const categories = ['animal', 'fruit', 'food', 'color', 'nature', 'family', 'body'];
+    return categories.map(cat => words.find(w => w.category === cat)).filter(Boolean) as WordItem[];
+  }, []);
 
   const playContinueLetter = (event?: MouseEvent) => {
     event?.stopPropagation();
@@ -341,6 +371,45 @@ export default function GujaratiApp() {
           <Starburst>NEW</Starburst>
         </button>
 
+        {/* Featured Words Scroll */}
+        <div className="mt-4">
+          <p className="px-4 text-[11px] font-bold uppercase tracking-[1px] mb-2" style={{ color: 'var(--rf-muted)' }}>
+            Featured Words
+          </p>
+          <div className="flex gap-3 overflow-x-auto px-4 pb-2" style={{ scrollbarWidth: 'none' }}>
+            {featuredWords.map((word, i) => {
+              const img = getWordImage(word.roman);
+              return (
+                <button
+                  key={word.roman}
+                  type="button"
+                  onClick={() => setActiveTab('words')}
+                  className="rf-pressable flex-shrink-0 flex flex-col items-center gap-1 bg-white rounded-2xl p-2"
+                  style={{
+                    width: 80,
+                    border: 'var(--rf-border)',
+                    boxShadow: i % 2 === 0 ? 'var(--rf-shadow-saffron)' : 'var(--rf-shadow-indigo)'
+                  }}
+                >
+                  {img ? (
+                    <img src={img} alt={word.english} className="w-14 h-14 object-contain rounded-xl"
+                      onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                  ) : (
+                    <div className="w-14 h-14 rounded-xl flex items-center justify-center text-2xl"
+                      style={{ background: 'var(--rf-cream)' }}>
+                      {categoryMeta[word.category]?.emoji || '📝'}
+                    </div>
+                  )}
+                  <p className="rf-gujarati text-xs font-bold text-center leading-tight" style={{ color: 'var(--rf-indigo)' }}>
+                    {word.gujarati}
+                  </p>
+                  <p className="text-[9px] font-semibold text-gray-500 text-center">{word.english}</p>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         <button
           type="button"
           onClick={() => setActiveTab('progress')}
@@ -424,11 +493,21 @@ export default function GujaratiApp() {
         </header>
       )}
 
-      <main className="mx-auto max-w-lg pb-24">
+      <main
+        className="mx-auto max-w-lg pb-24"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
         {renderContent()}
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white">
+      <nav
+        className="fixed bottom-0 left-0 right-0 z-50 bg-white"
+        style={{
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+          boxShadow: '0 -2px 0 var(--rf-ink)',
+        }}
+      >
         <div className="mx-auto max-w-lg">
           <BlockPrintBand height={9} opacity={0.45} />
           <div className="flex h-14 border-t-2 bg-white" style={{ borderColor: 'var(--rf-ink)' }}>

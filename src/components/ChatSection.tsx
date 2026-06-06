@@ -361,9 +361,9 @@ export function ChatSection() {
   const showStarters = messages.length <= 1 && !isLoading;
 
   return (
-    <div className="flex flex-col h-[calc(100vh-10rem)]">
+    <div className="flex flex-col" style={{ height: 'calc(100dvh - 112px)' }}>
       {/* Header */}
-      <div className="px-4 pt-4 pb-2">
+      <div className="px-4 pt-4 pb-2 flex-shrink-0">
         <div
           className="relative overflow-hidden bg-white"
           style={{ borderRadius: 'var(--rf-radius-card)', border: 'var(--rf-border)', boxShadow: 'var(--rf-shadow-saffron)' }}
@@ -397,7 +397,7 @@ export function ChatSection() {
       <div
         ref={messagesContainerRef}
         onScroll={onMessagesScroll}
-        className="flex-1 overflow-y-auto px-4 py-2 space-y-3 chat-scroll"
+        className="flex-1 min-h-0 overflow-y-auto px-4 py-2 space-y-3 chat-scroll"
         style={{ scrollBehavior: 'smooth', WebkitOverflowScrolling: 'touch' }}
       >
         {messages.map((msg) => {
@@ -510,7 +510,7 @@ export function ChatSection() {
 
       {/* Conversation starters */}
       {showStarters && (
-        <div className="px-4 pb-2">
+        <div className="px-4 pb-2 flex-shrink-0">
           <p className="text-[11px] font-bold text-gray-400 mb-1.5">Try asking…</p>
           <div className="flex flex-wrap gap-2">
             {STARTERS.map(s => (
@@ -526,8 +526,8 @@ export function ChatSection() {
         </div>
       )}
 
-      {/* Input */}
-      <div className="px-4 py-3 border-t border-gray-100 bg-white/80 backdrop-blur-sm">
+      {/* Input — flex-shrink-0 keeps it always visible */}
+      <div className="flex-shrink-0 px-4 py-3 border-t border-gray-100 bg-white/80 backdrop-blur-sm">
         <div className="flex items-center gap-2">
           <button
             onPointerDown={startRecording}
