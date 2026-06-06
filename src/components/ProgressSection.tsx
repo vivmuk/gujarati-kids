@@ -1,5 +1,6 @@
-﻿'use client';
+'use client';
 import { swar, vyanjan, words, phrases, stories } from '@/data/gujarati';
+import { HalftoneOverlay } from './RisoFolk';
 
 interface ProgressState {
   lettersLearned: string[];
@@ -36,8 +37,9 @@ export function ProgressSection({ progress }: { progress: ProgressState }) {
   return (
     <div className="px-4 pt-4 pb-6 animate-fade-in">
       {/* Header */}
-      <div className="relative rounded-2xl overflow-hidden mb-4" style={{ background: 'var(--gradient-forest)' }}>
-        <div className="flex items-center gap-3 p-4 text-white">
+      <div className="relative rounded-2xl overflow-hidden mb-4" style={{ background: 'var(--rf-indigo)', border: 'var(--rf-border)', boxShadow: 'var(--rf-shadow-saffron)' }}>
+        <HalftoneOverlay alpha={0.1} size={7} />
+        <div className="relative flex items-center gap-3 p-4 text-white">
           <img src="/images/progress.webp" alt="" className="w-14 h-14 rounded-xl object-contain border-2 border-white/30" />
           <div>
             <p className="font-bold text-lg">Your Progress</p>
@@ -47,7 +49,7 @@ export function ProgressSection({ progress }: { progress: ProgressState }) {
       </div>
 
       {/* Level badge */}
-      <div className="glass-card p-4 text-center mb-4">
+      <div className="rf-card p-4 text-center mb-4" style={{ boxShadow: 'var(--rf-shadow-indigo)' }}>
         <p className="text-3xl mb-1">{overall < 20 ? '🌱' : overall < 50 ? '🌿' : overall < 80 ? '🌳' : '🏆'}</p>
         <p className="font-black text-xl">{level}</p>
         <p className="text-sm text-gray-500">{Math.round(overall)}% complete</p>
@@ -56,7 +58,7 @@ export function ProgressSection({ progress }: { progress: ProgressState }) {
       {/* Progress bars */}
       <div className="space-y-3">
         {items.map(item => (
-          <div key={item.label} className="glass-card p-3">
+          <div key={item.label} className="rf-card p-3" style={{ boxShadow: 'var(--rf-shadow-saffron)' }}>
             <div className="flex items-center justify-between mb-1.5">
               <span className="font-bold text-sm">{item.emoji} {item.label}</span>
               <span className="text-xs text-gray-500">{item.count}/{item.total}</span>

@@ -1,8 +1,9 @@
-﻿'use client';
+'use client';
 import { useState, useCallback } from 'react';
 import { generateQuiz, words, phrases, swar, vyanjan } from '@/data/gujarati';
 import { useSpeak } from './useSpeak';
 import { SpeakIcon } from './SpeakIcon';
+import { HalftoneOverlay } from './RisoFolk';
 
 interface Props {
   onQuizComplete: (score: number, total: number) => void;
@@ -57,7 +58,7 @@ export function QuizSection({ onQuizComplete }: Props) {
         <div className="w-full bg-gray-100 rounded-full h-2 mb-6">
           <div className="h-2 rounded-full transition-all" style={{ width: `${((currentQ + 1) / quizQuestions.length) * 100}%`, background: 'var(--gradient-saffron)' }} />
         </div>
-        <div className="glass-card-strong p-6 text-center mb-6">
+        <div className="rf-card p-6 text-center mb-6" style={{ boxShadow: 'var(--rf-shadow-indigo)' }}>
           <button onClick={() => speak(q.gujarati, `quiz-q-${currentQ}`)} className="mb-3">
             <span className="text-5xl font-black" style={{ fontFamily: 'var(--font-gujarati)' }}>{q.gujarati}</span>
             <div className="mt-2">
@@ -109,8 +110,9 @@ export function QuizSection({ onQuizComplete }: Props) {
   // Quiz setup
   return (
     <div className="px-4 pt-4 pb-6 animate-fade-in">
-      <div className="relative rounded-2xl overflow-hidden mb-4" style={{ background: 'var(--gradient-saffron)' }}>
-        <div className="flex items-center gap-3 p-4 text-white">
+      <div className="relative rounded-2xl overflow-hidden mb-4" style={{ background: 'var(--rf-indigo)', border: 'var(--rf-border)', boxShadow: 'var(--rf-shadow-saffron)' }}>
+        <HalftoneOverlay alpha={0.1} size={7} />
+        <div className="relative flex items-center gap-3 p-4 text-white">
           <img src="/images/quiz.webp" alt="" className="w-14 h-14 rounded-xl object-contain border-2 border-white/30" />
           <div>
             <p className="font-bold text-lg">Quiz Time!</p>
@@ -124,8 +126,8 @@ export function QuizSection({ onQuizComplete }: Props) {
           <div className="grid grid-cols-3 gap-2">
             {(['letter', 'word', 'phrase'] as const).map(t => (
               <button key={t} onClick={() => setQuizType(t)}
-                className={`py-2.5 rounded-xl font-bold text-sm transition-all ${quizType === t ? 'text-white shadow-lg' : 'bg-gray-100 text-gray-600'}`}
-                style={quizType === t ? { background: 'var(--saffron-500)' } : {}}>
+                className={`py-2.5 rounded-xl font-bold text-sm transition-all ${quizType === t ? 'text-white' : 'text-gray-600'}`}
+                style={quizType === t ? { background: 'var(--rf-saffron)', border: 'var(--rf-border)', boxShadow: '2px 2px 0 var(--rf-ink)' } : { background: 'var(--rf-cream)', border: '2px solid transparent' }}>
                 {t === 'letter' ? '🔤 Letters' : t === 'word' ? '📚 Words' : '💬 Phrases'}
               </button>
             ))}
@@ -136,8 +138,8 @@ export function QuizSection({ onQuizComplete }: Props) {
           <div className="grid grid-cols-3 gap-2">
             {[1, 2, 3].map(l => (
               <button key={l} onClick={() => setQuizLevel(l)}
-                className={`py-2.5 rounded-xl font-bold text-sm transition-all ${quizLevel === l ? 'text-white shadow-lg' : 'bg-gray-100 text-gray-600'}`}
-                style={quizLevel === l ? { background: 'var(--saffron-500)' } : {}}>
+                className={`py-2.5 rounded-xl font-bold text-sm transition-all ${quizLevel === l ? 'text-white' : 'text-gray-600'}`}
+                style={quizLevel === l ? { background: 'var(--rf-indigo)', border: 'var(--rf-border)', boxShadow: '2px 2px 0 var(--rf-ink)' } : { background: 'var(--rf-cream)', border: '2px solid transparent' }}>
                 Level {l}
               </button>
             ))}

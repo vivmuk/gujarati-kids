@@ -4,6 +4,7 @@ import { words, categoryMeta, type WordItem } from '@/data/gujarati';
 import { useSpeak } from './useSpeak';
 import { SpeakIcon } from './SpeakIcon';
 import { getWordImage, getWordAudio } from '@/data/assets';
+import { HalftoneOverlay } from './RisoFolk';
 import { useWordImage } from './useWordImage';
 
 const categoryImages: Record<string, string> = {
@@ -151,8 +152,9 @@ export function WordsSection({ wordsLearned, onWordLearned }: Props) {
   return (
     <div className="px-4 pt-4 pb-6 animate-fade-in">
       {/* Header */}
-      <div className="relative rounded-2xl overflow-hidden mb-4" style={{ background: 'var(--gradient-saffron)' }}>
-        <div className="flex items-center gap-3 p-4 text-white">
+      <div className="relative rounded-2xl overflow-hidden mb-4" style={{ background: 'var(--rf-indigo)', border: 'var(--rf-border)', boxShadow: 'var(--rf-shadow-saffron)' }}>
+        <HalftoneOverlay alpha={0.1} size={7} />
+        <div className="relative flex items-center gap-3 p-4 text-white">
           <img
             src={categoryImages[activeCategory] || '/images/gen/category-surat.webp'}
             alt=""
@@ -198,7 +200,7 @@ export function WordsSection({ wordsLearned, onWordLearned }: Props) {
               onClick={() => handleCardClick(word)}
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleCardClick(word); }}
               className={`word-card ${isLearned ? 'learned' : ''} p-3.5 cursor-pointer`}
-              style={{ position: 'relative' }}
+              style={{ position: 'relative', border: 'var(--rf-border)', boxShadow: isLearned ? '3px 3px 0 var(--emerald-400)' : 'var(--rf-shadow-saffron)' }}
             >
               {imgPath && (
                 <img

@@ -1,9 +1,10 @@
-﻿'use client';
+'use client';
 import { useState } from 'react';
 import { phrases, categoryMeta } from '@/data/gujarati';
 import { useSpeak } from './useSpeak';
 import { SpeakIcon } from './SpeakIcon';
 import { getPhraseImage, getPhraseAudio } from '@/data/assets';
+import { HalftoneOverlay } from './RisoFolk';
 
 interface Props {
   phrasesLearned: string[];
@@ -19,8 +20,9 @@ export function PhrasesSection({ phrasesLearned, onPhraseLearned }: Props) {
   return (
     <div className="px-4 pt-4 pb-6 animate-fade-in">
       {/* Header */}
-      <div className="relative rounded-2xl overflow-hidden mb-4" style={{ background: 'var(--gradient-forest)' }}>
-        <div className="flex items-center gap-3 p-4 text-white">
+      <div className="relative rounded-2xl overflow-hidden mb-4" style={{ background: 'var(--rf-indigo)', border: 'var(--rf-border)', boxShadow: 'var(--rf-shadow-saffron)' }}>
+        <HalftoneOverlay alpha={0.1} size={7} />
+        <div className="relative flex items-center gap-3 p-4 text-white">
           <img src="/images/greeting.webp" alt="" className="w-14 h-14 rounded-xl object-contain border-2 border-white/30" />
           <div>
             <p className="font-bold text-lg">Everyday Phrases</p>
@@ -54,7 +56,7 @@ export function PhrasesSection({ phrasesLearned, onPhraseLearned }: Props) {
           // AI-generated illustration in 90s Indian textbook style
           const imgPath = getPhraseImage(phrase.roman);
           return (
-            <div key={i} className={`glass-card-strong p-4 ${isLearned ? 'border-emerald-200 bg-emerald-50/50' : ''}`}>
+            <div key={i} className="rf-card p-4" style={{ boxShadow: isLearned ? '4px 4px 0 var(--emerald-400)' : 'var(--rf-shadow-saffron)' }}>
               <div className="flex items-start gap-3">
                 {imgPath && (
                   <img

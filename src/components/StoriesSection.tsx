@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { stories, type StoryItem } from '@/data/gujarati';
 import { useSpeak } from './useSpeak';
 import { SpeakIcon } from './SpeakIcon';
-import { PlayTriangleIcon } from './RisoFolk';
+import { HalftoneOverlay, PlayTriangleIcon } from './RisoFolk';
 import { getStoryImage, getStoryLineAudio, getStoryLineImage, getStoryTitleAudio, getStoryVideo } from '@/data/assets';
 
 interface Props {
@@ -189,8 +189,9 @@ export function StoriesSection({ storiesRead, onStoryRead }: Props) {
           />
         </div>
 
-        <div className="relative rounded-2xl overflow-hidden mb-4" style={{ background: 'var(--gradient-berry)' }}>
-          <div className="flex items-center gap-3 p-4 text-white">
+        <div className="relative rounded-2xl overflow-hidden mb-4" style={{ background: 'var(--rf-indigo)', border: 'var(--rf-border)', boxShadow: 'var(--rf-shadow-saffron)' }}>
+          <HalftoneOverlay alpha={0.1} size={7} />
+          <div className="relative flex items-center gap-3 p-4 text-white">
             <div className="min-w-0 flex-1">
               <p className="font-bold text-lg" style={{ fontFamily: 'var(--font-gujarati)' }}>{activeStory.titleGujarati}</p>
               <p className="text-white/70 text-sm">{activeStory.titleEnglish}</p>
@@ -218,7 +219,7 @@ export function StoriesSection({ storiesRead, onStoryRead }: Props) {
         </div>
 
         {activeStory.focusWords?.length ? (
-          <div className="glass-card p-3 mb-4">
+          <div className="rf-card p-3 mb-4" style={{ boxShadow: 'var(--rf-shadow-indigo)' }}>
             <p className="mb-2 text-xs font-black uppercase tracking-[0.7px] text-gray-500">Focus words</p>
             <div className="grid grid-cols-2 gap-2">
               {activeStory.focusWords.map(word => (
@@ -238,7 +239,7 @@ export function StoriesSection({ storiesRead, onStoryRead }: Props) {
             const isPlaying = currentlyPlaying === id;
             const lineImg = getStoryLineImage(activeStory.id, i);
             return (
-              <div key={i} className={`glass-card p-3 flex items-start gap-3 ${isPlaying ? 'ring-2 ring-amber-300' : ''}`}>
+              <div key={i} className={`rf-card p-3 flex items-start gap-3 ${isPlaying ? 'ring-2 ring-amber-300' : ''}`}>
                 <AssetImage
                   src={lineImg}
                   alt={line.english}
@@ -268,7 +269,7 @@ export function StoriesSection({ storiesRead, onStoryRead }: Props) {
         </div>
 
         {(activeStory.questionEnglish || activeStory.moralEnglish) && (
-          <div className="glass-card-strong mt-4 p-4">
+          <div className="rf-card mt-4 p-4" style={{ boxShadow: 'var(--rf-shadow-saffron)' }}>
             {activeStory.questionEnglish && (
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.7px] text-gray-500">Think & answer</p>
@@ -303,8 +304,9 @@ export function StoriesSection({ storiesRead, onStoryRead }: Props) {
 
   return (
     <div className="px-4 pt-4 pb-6 animate-fade-in">
-      <div className="relative rounded-2xl overflow-hidden mb-4" style={{ background: 'var(--gradient-berry)' }}>
-        <div className="flex items-center gap-3 p-4 text-white">
+      <div className="relative rounded-2xl overflow-hidden mb-4" style={{ background: 'var(--rf-indigo)', border: 'var(--rf-border)', boxShadow: 'var(--rf-shadow-saffron)' }}>
+        <HalftoneOverlay alpha={0.1} size={7} />
+        <div className="relative flex items-center gap-3 p-4 text-white">
           <img src="/images/story.webp" alt="" className="w-14 h-14 rounded-xl object-contain border-2 border-white/30" />
           <div>
             <p className="font-bold text-lg">Stories</p>
@@ -319,7 +321,8 @@ export function StoriesSection({ storiesRead, onStoryRead }: Props) {
             <button
               key={story.id}
               onClick={() => setActiveStory(story)}
-              className={`glass-card w-full text-left p-3 hover:shadow-lg transition-all active:scale-[0.98] ${storyIsRead ? 'ring-2 ring-emerald-200' : ''}`}
+              className={`rf-card w-full text-left p-3 rf-pressable transition-all active:scale-[0.98] ${storyIsRead ? 'ring-2 ring-emerald-200' : ''}`}
+              style={{ boxShadow: storyIsRead ? '4px 4px 0 var(--emerald-400)' : 'var(--rf-shadow-indigo)' }}
             >
               <div className="flex items-center gap-3">
                 <button

@@ -501,6 +501,28 @@ export default function GujaratiApp() {
         {renderContent()}
       </main>
 
+      {/* Guju AI branded badge */}
+      <div className="fixed left-1/2 -translate-x-1/2 z-[51]" style={{ bottom: 'calc(56px + env(safe-area-inset-bottom, 0px) + 12px)' }}>
+        <button
+          type="button"
+          onClick={() => setActiveTab('chat')}
+          className="guju-badge flex items-center gap-1.5 px-4 py-1.5 rounded-full"
+          style={{
+            background: 'linear-gradient(135deg, var(--rf-saffron) 0%, var(--rf-indigo) 100%)',
+            border: '2.5px solid var(--rf-ink)',
+          }}
+        >
+          <Guju size={20} sw={2} />
+          <span className="text-white font-black text-sm tracking-wide" style={{ fontFamily: 'var(--font-display)', textShadow: '1px 1px 0 rgba(0,0,0,0.3)' }}>
+            Guju AI
+          </span>
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: 'var(--rf-saffron-pale)' }}></span>
+            <span className="relative inline-flex rounded-full h-2 w-2" style={{ background: '#4ade80' }}></span>
+          </span>
+        </button>
+      </div>
+
       <nav
         className="fixed bottom-0 left-0 right-0 z-50 bg-white"
         style={{

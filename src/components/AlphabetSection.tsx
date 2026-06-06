@@ -1,8 +1,9 @@
-﻿'use client';
+'use client';
 import { useState } from 'react';
 import { swar, vyanjan } from '@/data/gujarati';
 import { useSpeak } from './useSpeak';
 import { SpeakIcon } from './SpeakIcon';
+import { HalftoneOverlay } from './RisoFolk';
 import { getLetterAudio, getLetterImage } from '@/data/assets';
 
 export function AlphabetSection({ onLetterLearned }: { onLetterLearned: (letter: string) => void }) {
@@ -19,8 +20,8 @@ export function AlphabetSection({ onLetterLearned }: { onLetterLearned: (letter:
       <div className="flex gap-2 mb-4">
         {(['swar', 'vyanjan'] as const).map(t => (
           <button key={t} onClick={() => { setTab(t); setSelectedLetter(null); }}
-            className={`flex-1 py-2.5 rounded-xl font-bold text-sm transition-all ${tab === t ? 'text-white shadow-lg' : 'bg-gray-100 text-gray-600'}`}
-            style={tab === t ? { background: t === 'swar' ? 'var(--gradient-ocean)' : 'var(--gradient-berry)' } : {}}>
+            className={`flex-1 py-2.5 rounded-xl font-bold text-sm transition-all ${tab === t ? 'text-white' : 'text-gray-600'}`}
+            style={tab === t ? { background: 'var(--rf-indigo)', border: 'var(--rf-border)', boxShadow: 'var(--rf-shadow-saffron)' } : { background: 'var(--rf-cream)', border: '2px solid transparent' }}>
             {t === 'swar' ? '🔊 Vowels (સ્વર)' : '🔤 Consonants (વ્યંજન)'}
           </button>
         ))}
@@ -37,7 +38,8 @@ export function AlphabetSection({ onLetterLearned }: { onLetterLearned: (letter:
                 onLetterLearned(letter.gujarati);
                 if (audioPath) speak(audioPath, `letter-${letter.roman}`);
               }}
-              className={`letter-tile ${selectedLetter === letter.gujarati ? 'border-amber-400 bg-amber-50 shadow-lg' : ''}`}>
+              className={`letter-tile ${selectedLetter === letter.gujarati ? 'shadow-lg' : ''}`}
+              style={selectedLetter === letter.gujarati ? { borderColor: 'var(--rf-saffron)', background: 'var(--rf-cream)', boxShadow: 'var(--rf-shadow-saffron)' } : {}}>
               <span className="text-2xl font-black" style={{ fontFamily: 'var(--font-gujarati)' }}>{letter.gujarati}</span>
               <span className="text-[10px] text-gray-500 font-semibold">{letter.roman}</span>
             </button>
@@ -47,7 +49,7 @@ export function AlphabetSection({ onLetterLearned }: { onLetterLearned: (letter:
 
       {/* Selected letter detail */}
       {selected && (
-        <div className="mt-4 glass-card-strong p-4 animate-scale-in">
+        <div className="mt-4 rf-card p-4 animate-scale-in" style={{ boxShadow: 'var(--rf-shadow-saffron)' }}>
           <div className="flex items-start gap-4">
             {/* Pre-generated illustration */}
             {getLetterImage(selected.roman) && (
@@ -66,12 +68,12 @@ export function AlphabetSection({ onLetterLearned }: { onLetterLearned: (letter:
                     const audioPath = getLetterAudio(selected.roman);
                     speak(audioPath || `${selected.gujarati}, ${selected.example}`, `letter-detail-${selected.roman}`);
                   }}
-                  className="speak-btn p-2 rounded-full bg-amber-100">
+                  className="speak-btn p-2 rounded-full" style={{ background: 'var(--rf-cream)' }}>
                   <SpeakIcon id={`letter-detail-${selected.roman}`} currentlyPlaying={currentlyPlaying} ttsLoading={ttsLoading} />
                 </button>
               </div>
               <p className="text-sm text-gray-600 font-semibold">{selected.roman}</p>
-              <div className="mt-2 p-2 bg-amber-50 rounded-lg">
+              <div className="mt-2 p-2 rounded-lg" style={{ background: 'var(--rf-cream)' }}>
                 <p className="text-sm"><span className="font-bold" style={{ fontFamily: 'var(--font-gujarati)' }}>{selected.example}</span> = {selected.exampleEnglish}</p>
               </div>
             </div>

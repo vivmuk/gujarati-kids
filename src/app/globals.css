@@ -512,6 +512,22 @@ body {
   animation: recording-pulse 1s ease-in-out infinite;
 }
 
+/* ============ GUJU AI BADGE ============ */
+@keyframes guju-glow {
+  0%, 100% { box-shadow: 3px 3px 0 var(--rf-ink), 0 0 12px rgba(239, 90, 35, 0.25); }
+  50% { box-shadow: 3px 3px 0 var(--rf-ink), 0 0 24px rgba(239, 90, 35, 0.5); }
+}
+
+.guju-badge {
+  animation: guju-glow 2.5s ease-in-out infinite;
+  transition: transform 0.2s ease;
+  cursor: pointer;
+}
+
+.guju-badge:hover {
+  transform: scale(1.05);
+}
+
 /* ============ MOBILE OVERRIDES ============ */
 @media (max-width: 640px) {
   body {
