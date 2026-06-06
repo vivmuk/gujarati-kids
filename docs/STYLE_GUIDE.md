@@ -92,15 +92,17 @@ labeled bilingual educational illustration
 ### 4d. Story hero (one per story)
 
 ```
-[STYLE_PREFIX] illustration for children's story "{titleEnglish}", Indian
-village scene, warm and inviting
+[STYLE_PREFIX] wordless illustration for children's story "{titleEnglish}",
+Indian village scene, warm and inviting, no text, no letters, no labels,
+no captions, no speech bubbles
 ```
 
 ### 4e. Story line (one per story sentence)
 
 ```
-[STYLE_PREFIX] illustration of: {english}, Gujarati story scene, simple and
-clear for children
+[STYLE_PREFIX] wordless illustration of: {english}, Gujarati story scene,
+simple and clear for children, no text, no letters, no labels, no captions,
+no speech bubbles
 ```
 
 **Example:**
@@ -117,7 +119,7 @@ The `/api/chat` route triggers `/api/image`, which uses `grok-imagine-image-qual
 [STYLE_PREFIX] {image_prompt_from_llm}
 ```
 
-The LLM is instructed to write short (≤20 word) image prompts describing one clear subject — see `src/app/api/chat/route.ts` for the system prompt that controls this.
+The LLM is instructed to write short (≤20 word) image prompts describing one clear subject — see `src/app/api/chat/route.ts` for the system prompt that controls this. The same chat contract also returns silent `FOLLOWUP:` lines; the UI parses them into progressive prompt chips instead of showing or reading the marker text.
 
 ## 6. Changing the global style
 

@@ -1,8 +1,9 @@
 'use client';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { stories, type StoryItem } from '@/data/gujarati';
 import { useSpeak } from './useSpeak';
 import { SpeakIcon } from './SpeakIcon';
+import { PlayTriangleIcon } from './RisoFolk';
 import { getStoryImage, getStoryLineAudio, getStoryLineImage, getStoryTitleAudio } from '@/data/assets';
 
 interface Props {
@@ -23,13 +24,68 @@ function AssetImage({ src, alt, className, fallback }: AssetImageProps) {
   return <img src={src} alt={alt} className={className} onError={() => setFailed(true)} />;
 }
 
+type StoryVideoState = Record<string, { url: string | null; loading: boolean; error: string | null }>;
+
 export function StoriesSection({ storiesRead, onStoryRead }: Props) {
   const [activeStory, setActiveStory] = useState<StoryItem | null>(null);
+  const [storyVideos, setStoryVideos] = useState<StoryVideoState>({});
+  const videoUrlsRef = useRef<string[]>([]);
   const { speak, currentlyPlaying, ttsLoading } = useSpeak();
+
+  useEffect(() => {
+    return () => {
+      videoUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
+      videoUrlsRef.current = [];
+    };
+  }, []);
+
+  const patchStoryVideo = (storyId: string, patch: Partial<StoryVideoState[string]>) => {
+    setStoryVideos(prev => ({
+      ...prev,
+      [storyId]: {
+        url: prev[storyId]?.url ?? null,
+        loading: prev[storyId]?.loading ?? false,
+        error: prev[storyId]?.error ?? null,
+        ...patch,
+      },
+    }));
+  };
+
+  const generateStoryVideo = async (story: StoryItem) => {
+    if (storyVideos[story.id]?.loading) return;
+    patchStoryVideo(story.id, { loading: true, error: null });
+
+    try {
+      const res = await fetch('/api/video', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageUrl: getStoryImage(story.id),
+          prompt: `A gentle Gujarati folk riso-style children's story animation for "${story.titleEnglish}". Keep the full subject visible with generous padding, subtle friendly motion, light cream or white background, no new text, no watermark.`,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        throw new Error(err?.error || 'Video generation failed');
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      videoUrlsRef.current.push(url);
+      patchStoryVideo(story.id, { url, loading: false });
+    } catch {
+      patchStoryVideo(story.id, {
+        loading: false,
+        error: 'Video could not be made for this story art.',
+      });
+    }
+  };
 
   if (activeStory) {
     const storyIsRead = storiesRead.includes(activeStory.id);
     const titleId = `story-${activeStory.id}-title`;
+    const storyVideo = storyVideos[activeStory.id];
 
     return (
       <div className="px-4 pt-4 pb-6 animate-fade-in">
@@ -47,6 +103,39 @@ export function StoriesSection({ storiesRead, onStoryRead }: Props) {
             </div>
           }
         />
+
+        <div className="mb-4">
+          {!storyVideo?.url && (
+            <button
+              type="button"
+              onClick={() => generateStoryVideo(activeStory)}
+              disabled={storyVideo?.loading}
+              className="inline-flex min-h-10 items-center gap-2 rounded-xl px-3 py-2 text-xs font-black text-white transition-all active:scale-95 disabled:opacity-60"
+              style={{
+                background: 'var(--rf-saffron)',
+                border: '2px solid var(--rf-ink)',
+                boxShadow: '2px 2px 0 var(--rf-ink)',
+              }}
+            >
+              <PlayTriangleIcon className="h-3.5 w-3.5" />
+              {storyVideo?.loading ? 'Making theater...' : 'Story Theater'}
+            </button>
+          )}
+          {storyVideo?.error && (
+            <p className="mt-1 text-[11px] font-semibold" style={{ color: 'var(--rf-saffron)' }}>
+              {storyVideo.error}
+            </p>
+          )}
+          {storyVideo?.url && (
+            <video
+              src={storyVideo.url}
+              controls
+              playsInline
+              className="max-h-72 w-full rounded-xl bg-white object-contain"
+              style={{ border: '2px solid var(--rf-ink)' }}
+            />
+          )}
+        </div>
 
         <div className="relative rounded-2xl overflow-hidden mb-4" style={{ background: 'var(--gradient-berry)' }}>
           <div className="flex items-center gap-3 p-4 text-white">

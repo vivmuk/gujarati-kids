@@ -8,6 +8,7 @@ interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  followups?: FollowupPrompt[];
   image?: string | null; // base64 data URL from grok-imagine
   imageLoading?: boolean; // shows shimmer while the image is being generated
   imagePrompt?: string | null;
@@ -15,6 +16,12 @@ interface ChatMessage {
   videoLoading?: boolean;
   videoError?: string | null;
   streaming?: boolean; // true while tokens are still arriving
+}
+
+interface FollowupPrompt {
+  label: string;
+  send: string;
+  level: number;
 }
 
 // Tappable conversation starters so kids who can't type yet can dive in.
@@ -26,6 +33,45 @@ const STARTERS = [
   { label: '👋 Greetings', send: 'How do I greet people in Gujarati?' },
   { label: '🍲 Gujarati food', send: 'Tell me about a famous Gujarati food' },
 ];
+
+const FALLBACK_FOLLOWUPS: Record<number, string[]> = {
+  1: [
+    'Teach me 3 more easy Gujarati words',
+    'Ask me to repeat one word from this',
+    'Show me one picture word in Gujarati',
+    'Teach me an animal word and a food word',
+  ],
+  2: [
+    'Give me a short Gujarati phrase using this',
+    'Quiz me with one missing word',
+    'Teach me the polite way to say this',
+    'Help me say this to my family',
+  ],
+  3: [
+    'Help me make a full Gujarati sentence',
+    'Ask me a simple Gujarati question',
+    'Give me a tiny dialogue using this',
+    'Teach me the opposite or related word',
+  ],
+  4: [
+    'Explain the grammar pattern in this sentence',
+    'Show me how gender changes this phrase',
+    'Teach me present and past forms for this idea',
+    'Compare the Gujarati word order with English',
+  ],
+  5: [
+    'Make a 4-line Gujarati dialogue about this',
+    'Tell me a tiny story using these words',
+    'Connect this to a Gujarati festival or custom',
+    'Ask me to retell this in simple Gujarati',
+  ],
+  6: [
+    'Role-play a real conversation using this',
+    'Help me explain my opinion in Gujarati',
+    'Compare Gujarati and Hindi for this idea',
+    'Give me a harder mixed quiz on this topic',
+  ],
+};
 
 const IMAGE_LOADING_PLACEHOLDER =
   'data:image/svg+xml;utf8,' +
@@ -46,24 +92,65 @@ function imageSrc(image: string): string {
 // Hide the silent `IMAGE: ...` instruction (and any partial marker still being
 // typed at the very end) from what the child sees while tokens stream in.
 function liveVisible(raw: string): string {
-  const i = raw.search(/\nIMAGE:/i);
+  const i = raw.search(/\n(?:IMAGE|FOLLOWUP(?:\s*\d+)?)\s*:/i);
   let v = i >= 0 ? raw.slice(0, i) : raw;
   v = v.replace(/\nI(?:M(?:A(?:G(?:E)?)?)?)?:?\s*$/i, '');
+  v = v.replace(/\nF(?:O(?:L(?:L(?:O(?:W(?:U(?:P)?)?)?)?)?)?)?(?:\s*\d*)?:?\s*$/i, '');
   return v.trim();
 }
 
 // Final parse once the stream is complete: split the visible reply from the
-// optional image prompt.
-function parseFinal(raw: string): { visible: string; imagePrompt: string | null } {
+// optional image prompt and silent follow-up prompts.
+function parseFinal(raw: string): { visible: string; imagePrompt: string | null; followups: FollowupPrompt[] } {
   const lines = raw.split('\n');
   let imagePrompt: string | null = null;
+  const followups: FollowupPrompt[] = [];
   const kept: string[] = [];
   for (const line of lines) {
     const m = line.match(/^\s*IMAGE:\s*(.+)$/i);
+    const f = line.match(/^\s*FOLLOWUP(?:\s*\d+)?\s*:\s*(.+)$/i);
     if (m) imagePrompt = m[1].trim();
-    else kept.push(line);
+    else if (f) {
+      const normalized = normalizeFollowup(f[1]);
+      if (normalized) followups.push({ label: normalized, send: normalized, level: 1 });
+    } else if (!/^\s*FOLLOWUPS?\s*:?\s*$/i.test(line)) {
+      kept.push(line);
+    }
   }
-  return { visible: kept.join('\n').trim(), imagePrompt };
+  return { visible: kept.join('\n').trim(), imagePrompt, followups: followups.slice(0, 3) };
+}
+
+function normalizeFollowup(text: string): string | null {
+  const value = text
+    .replace(/^\s*[-*\d.)]+\s*/, '')
+    .replace(/^["']|["']$/g, '')
+    .trim();
+  if (!value || value.length < 6) return null;
+  return value.length > 130 ? `${value.slice(0, 127).trim()}...` : value;
+}
+
+function stageForTurn(userTurnCount: number): number {
+  return Math.min(6, Math.max(1, 1 + Math.floor((userTurnCount - 1) / 2)));
+}
+
+function randomFollowups(userTurnCount: number, currentPrompt: string): FollowupPrompt[] {
+  const level = stageForTurn(userTurnCount);
+  const pool = [
+    ...(FALLBACK_FOLLOWUPS[level] || []),
+    ...(FALLBACK_FOLLOWUPS[Math.max(1, level - 1)] || []),
+  ];
+  const shuffled = [...new Set(pool)].sort(() => Math.random() - 0.5);
+  const selected = shuffled.slice(0, 3);
+  if (!selected.length) selected.push(`Teach me one harder sentence about: ${currentPrompt}`);
+  return selected.map(label => ({ label, send: label, level }));
+}
+
+function tagFollowupLevels(followups: FollowupPrompt[], userTurnCount: number): FollowupPrompt[] {
+  const base = stageForTurn(userTurnCount);
+  return followups.slice(0, 3).map((followup, index) => ({
+    ...followup,
+    level: Math.min(6, base + (index === 2 ? 1 : 0)),
+  }));
 }
 
 function GujuThinking() {
@@ -164,6 +251,7 @@ export function ChatSection() {
 
     // Build clean history (visible text only) before adding the new turn.
     const history = messages.map(m => ({ role: m.role, content: m.content }));
+    const userTurnCount = messages.filter(m => m.role === 'user').length + 1;
 
     const userId = uid();
     const botId = uid();
@@ -193,9 +281,18 @@ export function ChatSection() {
         patch(botId, { content: liveVisible(acc) });
       }
 
-      const { visible, imagePrompt } = parseFinal(acc);
+      const { visible, imagePrompt, followups } = parseFinal(acc);
       const finalText = visible || 'Sorry, I couldn\'t understand that. 🙏';
-      patch(botId, { content: finalText, streaming: false, imageLoading: !!imagePrompt, imagePrompt });
+      const nextPrompts = followups.length
+        ? tagFollowupLevels(followups, userTurnCount)
+        : randomFollowups(userTurnCount, text);
+      patch(botId, {
+        content: finalText,
+        streaming: false,
+        imageLoading: !!imagePrompt,
+        imagePrompt,
+        followups: nextPrompts,
+      });
 
       // Auto-speak the reply for early readers.
       if (voiceOn && finalText) speak(finalText, botId);
@@ -376,6 +473,28 @@ export function ChatSection() {
                     )}
                   </div>
                 )}
+
+                {!isUser && !msg.streaming && msg.followups?.length ? (
+                  <div className="mt-2 flex flex-wrap gap-2" aria-label="Follow-up prompts">
+                    {msg.followups.map((followup, index) => (
+                      <button
+                        key={`${msg.id}-followup-${index}`}
+                        type="button"
+                        onClick={() => sendMessage(followup.send)}
+                        disabled={isLoading}
+                        className="max-w-full rounded-xl px-2.5 py-1.5 text-left text-[11px] font-bold leading-snug transition-all active:scale-95 disabled:opacity-50"
+                        style={{
+                          background: 'var(--rf-cream)',
+                          color: 'var(--rf-indigo)',
+                          border: '1px solid rgba(30, 64, 175, 0.22)',
+                        }}
+                      >
+                        <span className="mr-1 opacity-60">L{followup.level}</span>
+                        {followup.label}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
 
                 {!isUser && !msg.streaming && msg.content && (
                   <button onClick={() => speak(msg.content, msg.id)} className="mt-1 text-xs opacity-60 hover:opacity-100 transition-opacity">

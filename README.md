@@ -41,7 +41,7 @@ A beautiful, interactive web app for kids (ages 4–12) to learn Gujarati using 
 - **Voice input**: Press & hold the mic button to speak in Gujarati or English
 - **Voice output**: Tap 🔊 to hear Guju's responses
 - Learn about culture: Navratri, Uttarayan, Dhokla, Garba, and more
-- Quick prompt buttons for common questions
+- Starter and follow-up prompt chips that get gradually harder over the conversation
 
 ### ⭐ Progress Tracker
 - Track letters, words, phrases, and stories learned
@@ -58,6 +58,7 @@ Based on **Stephen Krashen's Natural Approach**:
 3. **Meaningful Context**: Learn through stories, cultural references, and real conversations
 4. **Listening First**: Hear sounds before attempting to speak (audio-first design)
 5. **Play-Based**: Quizzes, animations, and achievements keep kids engaged
+6. **Retrieval + Spacing**: Guju recommends follow-up prompts that review, interleave, and add one harder step
 
 ## 🛠️ Tech Stack
 

@@ -136,13 +136,13 @@ function buildJobs(data: GujaratiData, workerIndex: number, totalWorkers: number
   for (const story of data.stories) {
     jobs.push({
       slug: `story-${story.id}`,
-      prompt: `illustration for children's story "${story.titleEnglish}", Indian village scene, warm and inviting`,
+      prompt: `wordless illustration for children's story "${story.titleEnglish}", Indian village scene, warm and inviting, no text, no letters, no labels, no captions, no speech bubbles`,
     });
     for (let i = 0; i < story.lines.length; i++) {
       const line = story.lines[i];
       jobs.push({
         slug: `story-${story.id}-line${i}`,
-        prompt: `illustration of: ${line.english}, Gujarati story scene, simple and clear for children`,
+        prompt: `wordless illustration of: ${line.english}, Gujarati story scene, simple and clear for children, no text, no letters, no labels, no captions, no speech bubbles`,
       });
     }
   }

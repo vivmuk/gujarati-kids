@@ -369,11 +369,11 @@ async function main() {
 
       if (fs.existsSync(filePath)) {
         console.log(`  ⏩ Skip existing: ${slug}`);
-        continue;
+      } else {
+        const prompt = `wordless illustration for children's story "${story.titleEnglish}", Indian village scene, warm and inviting, no text, no letters, no labels, no captions, no speech bubbles`;
+        await generateImage(prompt, filePath);
+        await sleep(1500);
       }
-      const prompt = `illustration for children's story "${story.titleEnglish}", Indian village scene, warm and inviting`;
-      await generateImage(prompt, filePath);
-      await sleep(1500);
 
       // Also generate per-line images
       for (let i = 0; i < story.lines.length; i++) {
@@ -386,7 +386,7 @@ async function main() {
           console.log(`  ⏩ Skip existing: ${lineSlug}`);
           continue;
         }
-        const linePrompt = `illustration of: ${line.english}, Gujarati story scene, simple and clear for children`;
+        const linePrompt = `wordless illustration of: ${line.english}, Gujarati story scene, simple and clear for children, no text, no letters, no labels, no captions, no speech bubbles`;
         await generateImage(linePrompt, linePath);
         await sleep(1500);
       }

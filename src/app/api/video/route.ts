@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 const VENICE_MODEL = process.env.VENICE_VIDEO_MODEL || 'seedance-2-0-fast-reference-to-video';
 const VIDEO_DURATION = '4s';
@@ -18,6 +21,30 @@ function getApiKey(): string {
   const key = process.env.VENICE_API_KEY;
   if (!key) throw new Error('VENICE_API_KEY is not configured');
   return key;
+}
+
+function mimeFromPath(filePath: string): string {
+  const ext = path.extname(filePath).toLowerCase();
+  if (ext === '.jpg' || ext === '.jpeg') return 'image/jpeg';
+  if (ext === '.png') return 'image/png';
+  if (ext === '.webp') return 'image/webp';
+  return 'application/octet-stream';
+}
+
+async function toReferenceImageUrl(imageUrl: string): Promise<string> {
+  if (/^(data:|https?:)/i.test(imageUrl)) return imageUrl;
+  if (!imageUrl.startsWith('/')) return imageUrl;
+
+  const publicDir = path.resolve(process.cwd(), 'public');
+  const relativePath = imageUrl.split(/[?#]/, 1)[0].replace(/^\/+/, '');
+  const filePath = path.resolve(publicDir, relativePath);
+
+  if (filePath !== publicDir && !filePath.startsWith(`${publicDir}${path.sep}`)) {
+    throw new Error('Invalid local image path');
+  }
+
+  const buffer = await readFile(filePath);
+  return `data:${mimeFromPath(filePath)};base64,${Buffer.from(buffer).toString('base64')}`;
 }
 
 async function venicePost(endpoint: string, body: Record<string, unknown>) {
@@ -64,6 +91,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'prompt is required' }, { status: 400 });
     }
 
+    const referenceImageUrl = await toReferenceImageUrl(imageUrl);
+
     // ── Step 1: Quote ──────────────────────────────────────────────
     const quoteRes = await venicePost('/video/quote', {
       model: VENICE_MODEL,
@@ -91,7 +120,7 @@ export async function POST(req: NextRequest) {
       aspect_ratio: ASPECT_RATIO,
       resolution: RESOLUTION,
       audio: GENERATE_AUDIO,
-      reference_image_urls: [imageUrl],
+      reference_image_urls: [referenceImageUrl],
       prompt,
     });
 
