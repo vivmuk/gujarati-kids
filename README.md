@@ -25,9 +25,10 @@ A beautiful, interactive web app for kids (ages 4–12) to learn Gujarati using 
 - Listen & repeat approach — hear first, then speak
 
 ### 📖 Interactive Stories
-- **3 beautifully written bilingual stories** with line-by-line audio
+- **10 bilingual stories**, including familiar Indian children's-book classics
 - Comprehensible Input stories: understand Gujarati from context
-- Play full story or tap individual lines
+- Focus words, story questions, and simple morals for each lesson
+- Tap the story title or individual lines to hear audio
 
 ### 🎯 Quiz Game
 - Dynamic quiz generator for Letters, Words, and Phrases
@@ -65,7 +66,7 @@ Based on **Stephen Krashen's Natural Approach**:
 - **Fonts**: Noto Sans Gujarati + Space Grotesk
 - **AI Engine**: [Venice.ai API](https://venice.ai)
   - **TTS**: `tts-xai-v1` (eve voice, `language: 'gu'` for proper Gujarati pronunciation)
-  - **STT**: `openai/whisper-large-v3` (Gujarati language detection)
+  - **STT**: `openai/whisper-large-v3` (Guju voice input transcription, with Gujarati `language: 'gu'` hint)
   - **Chat**: `openai-gpt-4o-mini-2024-07-18` (fast bilingual tutor through Venice)
   - **Image Gen**: `grok-imagine-image-quality` (Riso-Folk Gujarati folk style, safe mode)
   - **Video Gen**: `seedance-2-0-fast-reference-to-video` (short square animations from generated lesson images)
@@ -98,6 +99,7 @@ cp .env.example .env.local
 ```env
 VENICE_API_KEY=your_venice_api_key_here
 VENICE_BASE_URL=https://api.venice.ai/api/v1
+VENICE_STT_MODEL=openai/whisper-large-v3
 VENICE_IMAGE_MODEL=grok-imagine-image-quality
 VENICE_VIDEO_MODEL=seedance-2-0-fast-reference-to-video
 ```
@@ -143,8 +145,8 @@ src/
 ├── lib/
 │   └── venice.ts               # Venice API client wrapper
 └── public/
-    ├── audio/                  # Pre-generated TTS audio (141 mp3 files)
-    └── images/gen/             # Pre-generated illustrations (141 webp files)
+    ├── audio/                  # Pre-generated TTS audio
+    └── images/gen/             # Pre-generated illustrations
 
 scripts/
 ├── pregenerate.cts             # One-shot TTS + image pre-generator

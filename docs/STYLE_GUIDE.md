@@ -29,6 +29,7 @@ cropping:
 - **Speed:** `0.9` (slightly slower for kids)
 - **Language hint:** `gu` (ISO 639-1 — *critical* for accurate Gujarati pronunciation; without it, xAI guesses the script and mangles diacritics)
 - **Format:** `mp3`
+- **STT model:** `openai/whisper-large-v3` for Guju voice input, with `language: "gu"` sent as a Gujarati hint.
 
 For Latin-script text (English words, story titles, etc.) the language hint is `en` so the TTS picks a natural English voice instead of trying to read Latin as Gujarati.
 
@@ -45,6 +46,8 @@ For Latin-script text (English words, story titles, etc.) the language hint is `
 | TTS voice | `eve` |
 | TTS speed | `0.9` |
 | TTS language | `gu` (Gujarati script) or `en` (Latin script) |
+| STT model | `openai/whisper-large-v3` |
+| STT language | `gu` |
 | Video model | `seedance-2-0-fast-reference-to-video` |
 | Video duration | `4s` |
 | Video resolution | `480p`, `1:1`, audio disabled |

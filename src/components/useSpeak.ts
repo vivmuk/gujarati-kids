@@ -6,7 +6,7 @@ export function useSpeak() {
   const [ttsLoading, setTtsLoading] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  const speak = useCallback(async (textOrPath: string, id: string) => {
+  const speak = useCallback(async (textOrPath: string, id: string, fallbackText?: string) => {
     // Toggle off if already playing this item
     if (currentlyPlaying === id) {
       audioRef.current?.pause();
@@ -24,27 +24,15 @@ export function useSpeak() {
 
     // Check if this is a pre-generated audio path (starts with /audio/)
     const isPreGenerated = textOrPath.startsWith('/audio/');
-    
-    if (isPreGenerated) {
-      // Play pre-generated audio file directly — no API call, instant playback
-      try {
-        const audio = new Audio(textOrPath);
-        audioRef.current = audio;
-        audio.onended = () => setCurrentlyPlaying(null);
-        audio.onerror = () => setCurrentlyPlaying(null);
-        await audio.play();
-      } catch {
-        setCurrentlyPlaying(null);
-      }
-    } else {
-      // Fall back to TTS API for dynamic text (e.g., chat messages)
+
+    const playTts = async (text: string) => {
       setTtsLoading(true);
       try {
         const res = await fetch('/api/tts', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            text: textOrPath,
+            text,
             model: 'tts-xai-v1',
             voice: 'eve',
             speed: 0.9,
@@ -70,6 +58,27 @@ export function useSpeak() {
       } finally {
         setTtsLoading(false);
       }
+    };
+
+    if (isPreGenerated) {
+      // Play pre-generated audio file directly — no API call, instant playback
+      try {
+        const audio = new Audio(textOrPath);
+        audioRef.current = audio;
+        audio.onended = () => setCurrentlyPlaying(null);
+        audio.onerror = () => {
+          audioRef.current = null;
+          if (fallbackText) void playTts(fallbackText);
+          else setCurrentlyPlaying(null);
+        };
+        await audio.play();
+      } catch {
+        if (fallbackText) await playTts(fallbackText);
+        else setCurrentlyPlaying(null);
+      }
+    } else {
+      // Fall back to TTS API for dynamic text (e.g., chat messages)
+      await playTts(textOrPath);
     }
   }, [currentlyPlaying]);
 

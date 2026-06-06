@@ -238,7 +238,6 @@ export function ChatSection() {
         try {
           const formData = new FormData();
           formData.append('file', blob, 'audio.webm');
-          formData.append('model', 'openai/whisper-large-v3');
           formData.append('language', 'gu');
           const res = await fetch('/api/transcribe', { method: 'POST', body: formData });
           if (!res.ok) throw new Error('STT failed');

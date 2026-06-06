@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
+const STT_MODEL = process.env.VENICE_STT_MODEL || 'openai/whisper-large-v3';
+
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
     const audioBlob = formData.get('file') as File | null;
-    const model = (formData.get('model') as string) || 'openai/whisper-large-v3';
 
     if (!audioBlob) return NextResponse.json({ error: 'No audio file' }, { status: 400 });
 
@@ -15,7 +16,7 @@ export async function POST(req: NextRequest) {
 
     const veniceForm = new FormData();
     veniceForm.append('file', audioBlob, audioBlob.name || 'audio.webm');
-    veniceForm.append('model', model);
+    veniceForm.append('model', STT_MODEL);
     veniceForm.append('response_format', 'json');
     veniceForm.append('language', 'gu');
 

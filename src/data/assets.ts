@@ -87,6 +87,16 @@ export function getPhraseImage(roman: string): string | undefined {
   return imagePaths[`phrase-${phraseSlug(roman)}`];
 }
 
+// Helper: get story title audio
+export function getStoryTitleAudio(storyId: string): string | undefined {
+  return audioPaths[`story-${storyId}-title`];
+}
+
+// Helper: get story hero image
+export function getStoryImage(storyId: string): string | undefined {
+  return imagePaths[`story-${storyId}`];
+}
+
 // Helper: get story line audio
 export function getStoryLineAudio(storyId: string, lineIndex: number): string | undefined {
   return audioPaths[`story-${storyId}-line${lineIndex}`];

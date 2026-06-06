@@ -184,6 +184,14 @@ export default function GujaratiApp() {
     }));
   }, []);
 
+  const markStoryRead = useCallback((storyId: string) => {
+    setProgress(p => ({
+      ...p,
+      storiesRead: p.storiesRead.includes(storyId) ? p.storiesRead : [...p.storiesRead, storyId],
+      lastLesson: { type: 'story', id: storyId },
+    }));
+  }, []);
+
   const continueLetter = useMemo(() => {
     const savedLetter =
       progress.lastLesson?.type === 'letter'
@@ -367,7 +375,7 @@ export default function GujaratiApp() {
       case 'phrases':
         return <PhrasesSection phrasesLearned={progress.phrasesLearned} onPhraseLearned={markPhraseLearned} />;
       case 'stories':
-        return <StoriesSection />;
+        return <StoriesSection storiesRead={progress.storiesRead} onStoryRead={markStoryRead} />;
       case 'quiz':
         return <QuizSection onQuizComplete={(s, t) => setProgress(p => ({ ...p, quizScore: p.quizScore + s, quizTotal: p.quizTotal + t }))} />;
       case 'chat':

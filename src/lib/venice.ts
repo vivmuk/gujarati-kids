@@ -52,7 +52,7 @@ export async function veniceTTS(input: string, options: Record<string, unknown> 
 export async function veniceTranscribe(audioBlob: Blob, options: Record<string, unknown> = {}) {
   const formData = new FormData();
   formData.append('file', audioBlob, 'audio.webm');
-  formData.append('model', (options.model as string) || 'openai/whisper-large-v3');
+  formData.append('model', (options.model as string) || process.env.VENICE_STT_MODEL || 'openai/whisper-large-v3');
   formData.append('response_format', 'json');
   formData.append('language', 'gu');
 
