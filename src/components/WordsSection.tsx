@@ -6,6 +6,7 @@ import { SpeakIcon } from './SpeakIcon';
 import { getWordImage, getWordAudio } from '@/data/assets';
 import { HalftoneOverlay } from './RisoFolk';
 import { useWordImage } from './useWordImage';
+import { usePronunciation } from './usePronunciation';
 
 const categoryImages: Record<string, string> = {
   animal: '/images/animal.webp', fruit: '/images/fruit.webp', color: '/images/color.webp',
@@ -34,6 +35,7 @@ function WordPopup({ word, onClose, speak, currentlyPlaying, ttsLoading, onWordL
   const popupId = `popup-${word.gujarati}`;
   const meta = categoryMeta[word.category];
   const { src, loading, generate, handleStaticError } = useWordImage(word.roman, word.english, true);
+  const { isRecording, isProcessing, score, startPronunciationCheck, stopPronunciationCheck } = usePronunciation();
 
   // Auto-play audio when popup opens
   useEffect(() => {
@@ -127,6 +129,40 @@ function WordPopup({ word, onClose, speak, currentlyPlaying, ttsLoading, onWordL
         >
           <SpeakIcon id={popupId} currentlyPlaying={currentlyPlaying} ttsLoading={ttsLoading} />
         </button>
+
+        {/* Pronunciation Practice */}
+        <div className="w-full mt-4 pt-4 border-t border-gray-200">
+          <p className="text-xs font-bold text-gray-500 mb-2 uppercase">Practice Pronunciation</p>
+          <div className="flex items-center gap-3">
+            <button 
+              onMouseDown={() => startPronunciationCheck(word.gujarati)}
+              onMouseUp={stopPronunciationCheck}
+              onTouchStart={() => startPronunciationCheck(word.gujarati)}
+              onTouchEnd={stopPronunciationCheck}
+              className={`p-3 rounded-full flex-shrink-0 transition-all ${isRecording ? 'bg-red-500 text-white animate-pulse shadow-lg scale-110' : 'bg-gray-100 text-gray-600 active:scale-95'}`}
+            >
+              🎤
+            </button>
+            <div className="flex-1">
+              {isRecording ? (
+                <p className="text-sm font-bold text-red-500">Listening... Release to score</p>
+              ) : isProcessing ? (
+                <p className="text-sm font-bold text-gray-500 animate-pulse">Checking...</p>
+              ) : score !== null ? (
+                <div className="flex items-center gap-1">
+                  <span className="text-xl">{score >= 1 ? '⭐' : '❌'}</span>
+                  <span className="text-xl">{score >= 2 ? '⭐' : '⬛'}</span>
+                  <span className="text-xl">{score >= 3 ? '⭐' : '⬛'}</span>
+                  <span className="text-xs font-bold text-gray-500 ml-2">
+                    {score === 3 ? 'Perfect!' : score > 0 ? 'Good try!' : 'Try again'}
+                  </span>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500">Hold mic and say the word</p>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -16,7 +16,7 @@ export interface WordItem {
   gujarati: string;
   roman: string;
   english: string;
-  category: 'animal' | 'fruit' | 'color' | 'body' | 'family' | 'food' | 'nature' | 'number' | 'greeting' | 'surat';
+  category: 'animal' | 'fruit' | 'color' | 'body' | 'family' | 'food' | 'nature' | 'number' | 'greeting' | 'surat' | 'festival';
   level: number;
 }
 
@@ -370,6 +370,13 @@ export const words: WordItem[] = [
   { gujarati: 'લોચો', roman: 'locho', english: 'Locho (Surati snack)', category: 'surat', level: 1 },
   { gujarati: 'ઘુઘરા', roman: 'ghughra', english: 'Ghughra (sweet dumpling)', category: 'surat', level: 1 },
   { gujarati: 'તાપી', roman: 'tapi', english: 'Tapi River', category: 'surat', level: 1 },
+
+  // Festivals
+  { gujarati: 'પતંગ', roman: 'pataṅg', english: 'Kite', category: 'festival', level: 1 },
+  { gujarati: 'દીવો', roman: 'dīvō', english: 'Lamp', category: 'festival', level: 1 },
+  { gujarati: 'મીઠાઈ', roman: 'mīṭhāī', english: 'Sweets', category: 'festival', level: 1 },
+  { gujarati: 'ગરબા', roman: 'garbā', english: 'Dance', category: 'festival', level: 2 },
+  { gujarati: 'રંગ', roman: 'raṅg', english: 'Color', category: 'festival', level: 1 },
 ];
 
 
@@ -1104,6 +1111,39 @@ export const stories: StoryItem[] = [
     moralGujarati: 'હાસ્ય અને સામાન્ય સમજ મુશ્કેલી હલ કરે છે.',
     moralEnglish: 'Humor and common sense solve problems.',
   },
+];
+
+export interface Balgeet {
+  id: string;
+  titleGujarati: string;
+  titleEnglish: string;
+  lines: { gujarati: string; roman: string; english: string }[];
+}
+
+export const balgeet: Balgeet[] = [
+  {
+    id: 'chakki-ben',
+    titleGujarati: 'ચક્કીબેન ચક્કીબેન',
+    titleEnglish: 'Chakki Ben (Little Sparrow)',
+    lines: [
+      { gujarati: 'ચક્કીબેન ચક્કીબેન', roman: 'Chakki ben, chakki ben', english: 'Little sparrow, little sparrow' },
+      { gujarati: 'મારી સાથે રમવા આવશો કે નહિ?', roman: 'Mari sathe ramva aavsho ke nahi?', english: 'Will you come play with me or not?' },
+      { gujarati: 'બેસવાને પાટલો', roman: 'Besvane patlo', english: 'A stool to sit on' },
+      { gujarati: 'સૂવાને ખાટલો', roman: 'Suvane khatlo', english: 'A bed to sleep on' },
+      { gujarati: 'ઓઢવાને પીંછા આપીશ તને', roman: 'Odhvane pincha aapish tane', english: 'I will give you feathers to cover yourself' },
+    ]
+  },
+  {
+    id: 'ek-bilaadi',
+    titleGujarati: 'એક બિલાડી જાડી',
+    titleEnglish: 'Ek Biladi Jadi (One Fat Cat)',
+    lines: [
+      { gujarati: 'એક બિલાડી જાડી', roman: 'Ek biladi jadi', english: 'One fat cat' },
+      { gujarati: 'તેણે પહેરી સાડી', roman: 'Tene pehri sadi', english: 'She wore a sari' },
+      { gujarati: 'સાડી પહેરી ફરવા ગઈ', roman: 'Sadi pehri farva gai', english: 'Wearing a sari she went for a walk' },
+      { gujarati: 'તળાવમાં તો તરવા ગઈ', roman: 'Talavma to tarva gai', english: 'She went to swim in the pond' },
+    ]
+  }
 ];
 
 // ===== CATEGORY METADATA =====

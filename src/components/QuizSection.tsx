@@ -1,5 +1,5 @@
 'use client';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { generateQuiz, words, phrases, swar, vyanjan } from '@/data/gujarati';
 import { useSpeak } from './useSpeak';
 import { SpeakIcon } from './SpeakIcon';
@@ -12,42 +12,70 @@ interface Props {
 export function QuizSection({ onQuizComplete }: Props) {
   const [quizType, setQuizType] = useState<'letter' | 'word' | 'phrase'>('word');
   const [quizLevel, setQuizLevel] = useState(1);
-  const [quizQuestions, setQuizQuestions] = useState<ReturnType<typeof generateQuiz> | null>(null);
+  const [quizQuestions, setQuizQuestions] = useState<ReturnType<typeof generateQuiz>>([]);
   const [currentQ, setCurrentQ] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [score, setScore] = useState(0);
   const [showResult, setShowResult] = useState(false);
+  const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
+  const [isTimeAttack, setIsTimeAttack] = useState(false);
   const { speak, currentlyPlaying, ttsLoading } = useSpeak();
 
   const startQuiz = useCallback(() => {
-    const qs = generateQuiz(quizType, quizLevel, 5);
-    setQuizQuestions(qs);
+    const questions = generateQuiz(quizType, quizLevel, isTimeAttack ? 50 : 5);
+    setQuizQuestions(questions);
     setCurrentQ(0);
     setSelectedAnswer(null);
     setScore(0);
     setShowResult(false);
-  }, [quizType, quizLevel]);
+    if (isTimeAttack) {
+      setTimeRemaining(60);
+    } else {
+      setTimeRemaining(null);
+    }
+  }, [quizType, quizLevel, isTimeAttack]);
+
+  useEffect(() => {
+    if (timeRemaining !== null && timeRemaining > 0 && quizQuestions.length > 0 && !showResult) {
+      const timerId = setTimeout(() => {
+        setTimeRemaining(prev => (prev !== null ? prev - 1 : null));
+      }, 1000);
+      return () => clearTimeout(timerId);
+    } else if (timeRemaining === 0 && !showResult) {
+      setShowResult(true);
+      onQuizComplete(score, currentQ);
+    }
+  }, [timeRemaining, quizQuestions, showResult, score, currentQ, onQuizComplete]);
 
   const handleAnswer = (idx: number) => {
     if (selectedAnswer !== null) return;
     setSelectedAnswer(idx);
-    if (idx === quizQuestions![currentQ].answer) {
-      setScore(s => s + 1);
+    const newScore = idx === quizQuestions[currentQ].answer ? score + 1 : score;
+    if (idx === quizQuestions[currentQ].answer) {
+      setScore(newScore);
     }
+    
     setTimeout(() => {
-      if (currentQ + 1 < quizQuestions!.length) {
-        setCurrentQ(q => q + 1);
+      if (!isTimeAttack && currentQ < quizQuestions.length - 1) {
+        setCurrentQ(prev => prev + 1);
         setSelectedAnswer(null);
+      } else if (isTimeAttack && timeRemaining !== null && timeRemaining > 0) {
+        if (currentQ < quizQuestions.length - 1) {
+          setCurrentQ(prev => prev + 1);
+          setSelectedAnswer(null);
+        } else {
+          setShowResult(true);
+          onQuizComplete(newScore, quizQuestions.length);
+        }
       } else {
         setShowResult(true);
-        const finalScore = idx === quizQuestions![currentQ].answer ? score + 1 : score;
-        onQuizComplete(finalScore, quizQuestions!.length);
+        onQuizComplete(newScore, quizQuestions.length);
       }
     }, 1200);
   };
 
   // Quiz in progress
-  if (quizQuestions && !showResult) {
+  if (quizQuestions.length > 0 && !showResult) {
     const q = quizQuestions[currentQ];
     return (
       <div className="px-4 pt-4 pb-6 animate-fade-in">
@@ -55,9 +83,21 @@ export function QuizSection({ onQuizComplete }: Props) {
           <span className="text-sm font-bold text-gray-500">Question {currentQ + 1}/{quizQuestions.length}</span>
           <span className="text-sm font-bold" style={{ color: 'var(--saffron-600)' }}>Score: {score}</span>
         </div>
-        <div className="w-full bg-gray-100 rounded-full h-2 mb-6">
-          <div className="h-2 rounded-full transition-all" style={{ width: `${((currentQ + 1) / quizQuestions.length) * 100}%`, background: 'var(--gradient-saffron)' }} />
-        </div>
+        {isTimeAttack ? (
+          <div className="w-full bg-gray-100 rounded-full h-2 mb-2 relative overflow-hidden">
+            <div className="h-2 rounded-full transition-all" style={{ width: `${(timeRemaining! / 60) * 100}%`, background: timeRemaining! < 10 ? 'red' : 'var(--rf-saffron)' }} />
+          </div>
+        ) : (
+          <div className="w-full bg-gray-100 rounded-full h-2 mb-6">
+            <div className="h-2 rounded-full transition-all" style={{ width: `${((currentQ + 1) / quizQuestions.length) * 100}%`, background: 'var(--rf-saffron)' }} />
+          </div>
+        )}
+        
+        {isTimeAttack && (
+          <p className={`text-right font-black mb-4 ${timeRemaining! < 10 ? 'text-red-500 animate-pulse' : 'text-gray-500'}`}>
+            ⏱️ {timeRemaining}s left!
+          </p>
+        )}
         <div className="rf-card p-6 text-center mb-6" style={{ boxShadow: 'var(--rf-shadow-indigo)' }}>
           <button onClick={() => speak(q.gujarati, `quiz-q-${currentQ}`)} className="mb-3">
             <span className="text-5xl font-black" style={{ fontFamily: 'var(--font-gujarati)' }}>{q.gujarati}</span>
@@ -92,15 +132,15 @@ export function QuizSection({ onQuizComplete }: Props) {
 
   // Show result
   if (showResult) {
-    const pct = Math.round((score / quizQuestions!.length) * 100);
+    const pct = quizQuestions.length > 0 ? Math.round((score / quizQuestions.length) * 100) : 0;
     return (
       <div className="px-4 pt-4 pb-6 animate-fade-in text-center">
         <div className="text-6xl mb-4">{pct >= 80 ? '🏆' : pct >= 50 ? '⭐' : '💪'}</div>
         <h2 className="text-2xl font-black mb-2">Quiz Complete!</h2>
         <p className="text-4xl font-black mb-1" style={{ color: pct >= 80 ? '#10B981' : pct >= 50 ? '#F59E0B' : '#EF4444' }}>{pct}%</p>
-        <p className="text-gray-500 mb-6">{score}/{quizQuestions!.length} correct</p>
-        <button onClick={startQuiz} className="w-full py-3 rounded-2xl font-bold text-white shadow-lg active:scale-95 transition-all"
-          style={{ background: 'var(--gradient-saffron)' }}>
+        <p className="text-gray-500 mb-6">{score}/{quizQuestions.length} correct</p>
+        
+        <button onClick={() => setQuizQuestions([])} className="w-full py-4 rounded-xl font-black text-white text-lg transition-all active:scale-95" style={{ background: 'var(--rf-ink)', boxShadow: '0 4px 0 rgba(0,0,0,0.5)' }}>
           Play Again 🔄
         </button>
       </div>
@@ -143,6 +183,21 @@ export function QuizSection({ onQuizComplete }: Props) {
                 Level {l}
               </button>
             ))}
+          </div>
+        </div>
+        <div>
+          <p className="font-bold text-sm text-gray-600 mb-2">Mode</p>
+          <div className="flex gap-2">
+            <button onClick={() => setIsTimeAttack(false)}
+              className={`flex-1 py-2.5 rounded-xl font-bold text-sm transition-all ${!isTimeAttack ? 'text-white' : 'text-gray-600'}`}
+              style={!isTimeAttack ? { background: 'var(--rf-indigo)', border: 'var(--rf-border)', boxShadow: '2px 2px 0 var(--rf-ink)' } : { background: 'var(--rf-cream)', border: '2px solid transparent' }}>
+              Standard (5 Qs)
+            </button>
+            <button onClick={() => setIsTimeAttack(true)}
+              className={`flex-1 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-1 ${isTimeAttack ? 'text-white' : 'text-gray-600'}`}
+              style={isTimeAttack ? { background: 'var(--rf-saffron)', border: 'var(--rf-border)', boxShadow: '2px 2px 0 var(--rf-ink)' } : { background: 'var(--rf-cream)', border: '2px solid transparent' }}>
+              ⏱️ Time Attack
+            </button>
           </div>
         </div>
         <button onClick={startQuiz} className="w-full py-3.5 rounded-2xl font-bold text-white shadow-lg text-lg active:scale-95 transition-all"

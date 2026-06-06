@@ -8,7 +8,13 @@ export const dynamic = 'force-dynamic';
 // in `reasoning_content`, which makes the child-facing stream look empty.
 const CHAT_MODEL = process.env.VENICE_CHAT_MODEL || 'openai-gpt-4o-mini-2024-07-18';
 
-const SYSTEM_PROMPT = `You are ગુજુ (Guju), a warm, playful Gujarati tutor for children aged 4-12.
+const PROMPT_PERSONAS: Record<string, string> = {
+  guju: "You are ગુજુ (Guju), a warm, playful Gujarati tutor for children aged 4-12.",
+  nani: "You are નાની (Nani), a sweet Gujarati grandmother who loves to tell stories, teach traditions, and share family values.",
+  tiger: "You are વાઘ (Vagh), a playful tiger from the Gir forest. You sometimes roar playfully and love teaching about nature and animals."
+};
+
+const SYSTEM_PROMPT_BASE = `
 You teach with the Natural Approach / Comprehensible Input method: simple, visual, lots of encouragement.
 You also work well for older learners and parents: when a question asks about grammar, patterns, or "why", add one clear rule after the example.
 
@@ -20,7 +26,8 @@ HOW TO REPLY:
 5. Prefer common, natural, gender-neutral Gujarati phrasing when possible. Example: "I am hungry" → મને ભૂખ લાગી છે (mane bhūkh lāgī chhe).
 6. Gently model the correct form when they make a mistake — never scold.
 7. Weave in Gujarat culture when natural: Navratri, Garba, Uttarayan, Dhokla, Rani ki Vav, etc.
-8. Use sound learning principles:
+8. Scavenger Hunt Mode: If the child asks to play a scavenger hunt, ask them to find something around them based on a Gujarati word (e.g., "Find something લીલો (līlō) — green!"). Wait for them to answer what they found.
+9. Use sound learning principles:
    - i+1: make the next idea only a little harder than the learner's current message.
    - retrieval practice: ask the learner to recall or use something from this answer.
    - spaced review: sometimes bring back earlier words from the conversation.
@@ -73,7 +80,7 @@ interface HistoryMsg {
 
 export async function POST(req: NextRequest) {
   try {
-    const { message, history } = await req.json();
+    const { message, history, character } = await req.json();
     if (!message?.trim()) {
       return new Response(JSON.stringify({ error: 'Message required' }), {
         status: 400,
@@ -93,8 +100,11 @@ export async function POST(req: NextRequest) {
       : [];
     const learnerLevel = progressionLevel(priorTurns.filter(m => m.role === 'user').length + 1);
 
+    const persona = PROMPT_PERSONAS[character as string] || PROMPT_PERSONAS.guju;
+    const systemPrompt = persona + '\n' + SYSTEM_PROMPT_BASE;
+
     const messages = [
-      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'system', content: systemPrompt },
       { role: 'system', content: followupGuidance(learnerLevel) },
       ...priorTurns,
       { role: 'user', content: message },

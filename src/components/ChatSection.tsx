@@ -25,12 +25,17 @@ interface FollowupPrompt {
 }
 
 // Tappable conversation starters so kids who can't type yet can dive in.
+const CHARACTERS = [
+  { id: 'guju', name: 'Guju', icon: '🙏', color: 'var(--rf-saffron)' },
+  { id: 'nani', name: 'Nani', icon: '👵', color: 'var(--rf-indigo)' },
+  { id: 'tiger', name: 'Vagh', icon: '🐯', color: '#15803d' }, // Green for nature
+];
 const STARTERS = [
+  { label: '🔎 Scavenger Hunt', send: "Let's play a scavenger hunt! Give me something to find in Gujarati!" },
   { label: '🐄 પ્રાણીઓ શીખવો', send: 'Teach me some animals in Gujarati' },
   { label: '🔢 Count to 10', send: 'Help me count from 1 to 10 in Gujarati' },
   { label: '📖 વાર્તા કહો', send: 'Tell me a short fun story in Gujarati' },
   { label: '🎨 Colors', send: 'Teach me colors in Gujarati' },
-  { label: '👋 Greetings', send: 'How do I greet people in Gujarati?' },
   { label: '🍲 Gujarati food', send: 'Tell me about a famous Gujarati food' },
 ];
 
@@ -174,6 +179,7 @@ function GujuThinking() {
 }
 
 export function ChatSection() {
+  const [character, setCharacter] = useState('guju');
   const [messages, setMessages] = useState<ChatMessage[]>([
     { id: 'greeting', role: 'assistant', content: 'નમસ્તે! 🙏 I\'m ગુજુ (Guju), your Gujarati learning buddy! Ask me anything — words, phrases, grammar, or just chat in Gujarati!' }
   ]);
@@ -266,7 +272,7 @@ export function ChatSection() {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text, history }),
+        body: JSON.stringify({ message: text, history, character }),
       });
       if (!res.ok || !res.body) throw new Error('Chat error');
 
@@ -400,6 +406,23 @@ export function ChatSection() {
         className="flex-1 min-h-0 overflow-y-auto px-4 py-2 space-y-3 chat-scroll"
         style={{ scrollBehavior: 'smooth', WebkitOverflowScrolling: 'touch' }}
       >
+        {/* Character Selector */}
+        {messages.length === 1 && (
+          <div className="flex justify-center gap-4 mb-6">
+            {CHARACTERS.map(c => (
+              <button
+                key={c.id}
+                onClick={() => setCharacter(c.id)}
+                className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all ${character === c.id ? 'bg-white shadow-md scale-110' : 'opacity-70 hover:opacity-100'}`}
+                style={{ border: character === c.id ? `2px solid ${c.color}` : '2px solid transparent' }}
+              >
+                <span className="text-3xl">{c.icon}</span>
+                <span className="text-xs font-bold" style={{ color: c.color }}>{c.name}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
         {messages.map((msg) => {
           const isUser = msg.role === 'user';
           return (

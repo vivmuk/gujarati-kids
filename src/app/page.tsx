@@ -62,12 +62,13 @@ const TAB_META: Record<TabId, { gu: string; en: string }> = {
   progress: { gu: 'પ્રગતિ', en: 'Progress' },
 };
 
-const BOTTOM_TABS: Array<{ id: 'home' | 'alphabet' | 'quiz' | 'chat'; gu: string; en: string }> = [
-  { id: 'home', gu: 'ઘર', en: 'Home' },
-  { id: 'alphabet', gu: 'શીખો', en: 'Learn' },
-  { id: 'quiz', gu: 'રમો', en: 'Play' },
-  { id: 'chat', gu: 'ગુજુ', en: 'Guju' },
-];
+const BOTTOM_TABS = [
+  { id: 'home', gu: 'ઘર', en: 'HOME' },
+  { id: 'alphabet', gu: 'શીખો', en: 'LEARN' },
+  { id: 'chat', gu: '', en: '' },
+  { id: 'quiz', gu: 'રમો', en: 'PLAY' },
+  { id: 'progress', gu: 'પ્રગતિ', en: 'PROGRESS' },
+] as const;
 
 const TAB_ORDER: TabId[] = ['home', 'alphabet', 'words', 'phrases', 'stories', 'quiz', 'chat'];
 
@@ -501,28 +502,6 @@ export default function GujaratiApp() {
         {renderContent()}
       </main>
 
-      {/* Guju AI branded badge */}
-      <div className="fixed left-1/2 -translate-x-1/2 z-[51]" style={{ bottom: 'calc(56px + env(safe-area-inset-bottom, 0px) + 12px)' }}>
-        <button
-          type="button"
-          onClick={() => setActiveTab('chat')}
-          className="guju-badge flex items-center gap-1.5 px-4 py-1.5 rounded-full"
-          style={{
-            background: 'linear-gradient(135deg, var(--rf-saffron) 0%, var(--rf-indigo) 100%)',
-            border: '2.5px solid var(--rf-ink)',
-          }}
-        >
-          <Guju size={20} sw={2} />
-          <span className="text-white font-black text-sm tracking-wide" style={{ fontFamily: 'var(--font-display)', textShadow: '1px 1px 0 rgba(0,0,0,0.3)' }}>
-            Guju AI
-          </span>
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: 'var(--rf-saffron-pale)' }}></span>
-            <span className="relative inline-flex rounded-full h-2 w-2" style={{ background: '#4ade80' }}></span>
-          </span>
-        </button>
-      </div>
-
       <nav
         className="fixed bottom-0 left-0 right-0 z-50 bg-white"
         style={{
@@ -532,24 +511,48 @@ export default function GujaratiApp() {
       >
         <div className="mx-auto max-w-lg">
           <BlockPrintBand height={9} opacity={0.45} />
-          <div className="flex h-14 border-t-2 bg-white" style={{ borderColor: 'var(--rf-ink)' }}>
-            {BOTTOM_TABS.map(tab => {
+          <div className="flex h-14 border-t-2 bg-white relative" style={{ borderColor: 'var(--rf-ink)' }}>
+            {BOTTOM_TABS.map((tab, idx) => {
               const isActive = activeBottom === tab.id;
+              
+              if (tab.id === 'chat') {
+                return (
+                  <div key={tab.id} className="flex flex-1 items-center justify-center relative">
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('chat')}
+                      className="absolute -top-6 guju-badge flex flex-col items-center justify-center h-16 w-16 rounded-full z-10"
+                      style={{
+                        background: 'linear-gradient(135deg, var(--rf-saffron) 0%, var(--rf-indigo) 100%)',
+                        border: '3px solid var(--rf-ink)',
+                      }}
+                      aria-label="Guju AI Chat"
+                    >
+                      <Guju size={24} sw={2} />
+                      <span className="text-white font-black text-[10px] tracking-wide leading-none mt-1" style={{ fontFamily: 'var(--font-display)', textShadow: '1px 1px 0 rgba(0,0,0,0.3)' }}>
+                        GUJU AI
+                      </span>
+                    </button>
+                  </div>
+                );
+              }
+
               return (
                 <button
                   key={tab.id}
                   type="button"
                   onClick={() => setActiveTab(tab.id)}
-                  className="flex flex-1 items-center justify-center"
+                  className="flex flex-1 items-center justify-center pt-1"
                   aria-current={isActive ? 'page' : undefined}
                 >
                   <span
-                    className="flex min-h-11 min-w-12 flex-col items-center justify-center gap-0.5 px-3 py-1"
+                    className="flex min-h-11 min-w-12 flex-col items-center justify-center gap-0.5 px-2 py-1 transition-all"
                     style={{
                       background: isActive ? 'var(--rf-saffron)' : 'transparent',
                       color: isActive ? '#fff' : 'var(--rf-muted)',
                       borderRadius: 12,
                       border: isActive ? '2px solid var(--rf-ink)' : '2px solid transparent',
+                      transform: isActive ? 'scale(1.05)' : 'scale(1)',
                     }}
                   >
                     <span className="rf-gujarati text-base font-bold leading-none">{tab.gu}</span>

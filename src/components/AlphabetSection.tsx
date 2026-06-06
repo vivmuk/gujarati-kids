@@ -5,10 +5,12 @@ import { useSpeak } from './useSpeak';
 import { SpeakIcon } from './SpeakIcon';
 import { HalftoneOverlay } from './RisoFolk';
 import { getLetterAudio, getLetterImage } from '@/data/assets';
+import { TracingCanvas } from './TracingCanvas';
 
 export function AlphabetSection({ onLetterLearned }: { onLetterLearned: (letter: string) => void }) {
   const [tab, setTab] = useState<'swar' | 'vyanjan'>('swar');
   const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
+  const [mode, setMode] = useState<'listen' | 'trace'>('listen');
   const { speak, currentlyPlaying, ttsLoading } = useSpeak();
 
   const letters = tab === 'swar' ? swar : vyanjan;
@@ -35,6 +37,7 @@ export function AlphabetSection({ onLetterLearned }: { onLetterLearned: (letter:
             <button key={letter.gujarati}
               onClick={() => {
                 setSelectedLetter(letter.gujarati);
+                setMode('listen');
                 onLetterLearned(letter.gujarati);
                 if (audioPath) speak(audioPath, `letter-${letter.roman}`);
               }}
@@ -49,35 +52,57 @@ export function AlphabetSection({ onLetterLearned }: { onLetterLearned: (letter:
 
       {/* Selected letter detail */}
       {selected && (
-        <div className="mt-4 rf-card p-4 animate-scale-in" style={{ boxShadow: 'var(--rf-shadow-saffron)' }}>
-          <div className="flex items-start gap-4">
-            {/* Pre-generated illustration */}
-            {getLetterImage(selected.roman) && (
-              <img
-                src={getLetterImage(selected.roman)}
-                alt={selected.exampleEnglish}
-                className="w-24 h-24 rounded-xl object-contain flex-shrink-0 border-2 border-white shadow-md"
-                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-              />
-            )}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-3 mb-2">
-                <span className="text-5xl font-black" style={{ fontFamily: 'var(--font-gujarati)' }}>{selected.gujarati}</span>
-                <button
-                  onClick={() => {
-                    const audioPath = getLetterAudio(selected.roman);
-                    speak(audioPath || `${selected.gujarati}, ${selected.example}`, `letter-detail-${selected.roman}`);
-                  }}
-                  className="speak-btn p-2 rounded-full" style={{ background: 'var(--rf-cream)' }}>
-                  <SpeakIcon id={`letter-detail-${selected.roman}`} currentlyPlaying={currentlyPlaying} ttsLoading={ttsLoading} />
-                </button>
-              </div>
-              <p className="text-sm text-gray-600 font-semibold">{selected.roman}</p>
-              <div className="mt-2 p-2 rounded-lg" style={{ background: 'var(--rf-cream)' }}>
-                <p className="text-sm"><span className="font-bold" style={{ fontFamily: 'var(--font-gujarati)' }}>{selected.example}</span> = {selected.exampleEnglish}</p>
+        <div className="mt-4 rf-card p-4 animate-scale-in flex flex-col gap-3" style={{ boxShadow: 'var(--rf-shadow-saffron)' }}>
+          {/* Mode Toggle */}
+          <div className="flex gap-2 p-1 bg-gray-100 rounded-lg w-full max-w-[200px] mx-auto">
+            <button
+              onClick={() => setMode('listen')}
+              className={`flex-1 py-1 text-sm font-bold rounded-md transition-all ${mode === 'listen' ? 'bg-white shadow-sm text-gray-800' : 'text-gray-500'}`}
+            >
+              🔊 Listen
+            </button>
+            <button
+              onClick={() => setMode('trace')}
+              className={`flex-1 py-1 text-sm font-bold rounded-md transition-all ${mode === 'trace' ? 'bg-white shadow-sm text-gray-800' : 'text-gray-500'}`}
+            >
+              ✍️ Trace
+            </button>
+          </div>
+
+          {mode === 'trace' ? (
+            <TracingCanvas letter={selected.gujarati} />
+          ) : (
+            <div className="flex items-start gap-4">
+              {/* Pre-generated illustration */}
+              {getLetterImage(selected.roman) && (
+                <div className="w-24 h-24 shrink-0 rounded-xl overflow-hidden border-2 bg-white" style={{ borderColor: 'var(--rf-ink)' }}>
+                  <img src={getLetterImage(selected.roman)} alt={selected.exampleEnglish} className="w-full h-full object-cover" />
+                </div>
+              )}
+              
+              <div className="flex-1">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-4xl font-black text-gray-800" style={{ fontFamily: 'var(--font-gujarati)' }}>
+                      {selected.gujarati} <span className="text-xl text-gray-500">"{selected.roman}"</span>
+                    </h3>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      const audioPath = getLetterAudio(selected.roman);
+                      speak(audioPath || `${selected.gujarati}, ${selected.example}`, `letter-detail-${selected.roman}`);
+                    }}
+                    className="speak-btn p-2 rounded-full" style={{ background: 'var(--rf-cream)' }}>
+                    <SpeakIcon id={`letter-detail-${selected.roman}`} currentlyPlaying={currentlyPlaying} ttsLoading={ttsLoading} />
+                  </button>
+                </div>
+                
+                <div className="mt-2 p-2 rounded-lg" style={{ background: 'var(--rf-cream)' }}>
+                  <p className="text-sm"><span className="font-bold" style={{ fontFamily: 'var(--font-gujarati)' }}>{selected.example}</span> = {selected.exampleEnglish}</p>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       )}
     </div>

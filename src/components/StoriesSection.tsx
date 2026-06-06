@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { stories, type StoryItem } from '@/data/gujarati';
+import { stories, balgeet, type StoryItem, type Balgeet } from '@/data/gujarati';
 import { useSpeak } from './useSpeak';
 import { SpeakIcon } from './SpeakIcon';
 import { HalftoneOverlay, PlayTriangleIcon } from './RisoFolk';
@@ -61,6 +61,7 @@ function StaticVideo({ storyId, fallback }: { storyId: string; fallback: React.R
 type StoryVideoState = Record<string, { url: string | null; loading: boolean; error: string | null }>;
 
 export function StoriesSection({ storiesRead, onStoryRead }: Props) {
+  const [tab, setTab] = useState<'stories' | 'balgeet'>('stories');
   const [activeStory, setActiveStory] = useState<StoryItem | null>(null);
   const [storyVideos, setStoryVideos] = useState<StoryVideoState>({});
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
@@ -309,14 +310,32 @@ export function StoriesSection({ storiesRead, onStoryRead }: Props) {
         <div className="relative flex items-center gap-3 p-4 text-white">
           <img src="/images/story.webp" alt="" className="w-14 h-14 rounded-xl object-contain border-2 border-white/30" />
           <div>
-            <p className="font-bold text-lg">Stories</p>
-            <p className="text-white/70 text-xs" style={{ fontFamily: 'var(--font-gujarati)' }}>વાર્તાઓ</p>
+            <p className="font-bold text-lg">Stories & Songs</p>
+            <p className="text-white/70 text-xs" style={{ fontFamily: 'var(--font-gujarati)' }}>વાર્તાઓ અને બાલગીત</p>
           </div>
         </div>
       </div>
+      
+      {/* Tabs */}
+      <div className="flex gap-2 p-1 bg-gray-100 rounded-lg w-full mb-4">
+        <button
+          onClick={() => setTab('stories')}
+          className={`flex-1 py-1.5 text-sm font-bold rounded-md transition-all ${tab === 'stories' ? 'bg-white shadow-sm text-gray-800' : 'text-gray-500'}`}
+        >
+          📖 Stories
+        </button>
+        <button
+          onClick={() => setTab('balgeet')}
+          className={`flex-1 py-1.5 text-sm font-bold rounded-md transition-all ${tab === 'balgeet' ? 'bg-white shadow-sm text-gray-800' : 'text-gray-500'}`}
+        >
+          🎵 Balgeet
+        </button>
+      </div>
+
       <div className="space-y-3">
-        {stories.map((story) => {
-          const storyIsRead = storiesRead.includes(story.id);
+        {tab === 'stories' ? (
+          stories.map((story) => {
+            const storyIsRead = storiesRead.includes(story.id);
           return (
             <button
               key={story.id}
@@ -366,7 +385,31 @@ export function StoriesSection({ storiesRead, onStoryRead }: Props) {
               </div>
             </button>
           );
-        })}
+        })
+        ) : (
+          balgeet.map((song, i) => (
+            <div key={song.id} className="rf-card p-4 flex items-start gap-3" style={{ boxShadow: 'var(--rf-shadow-saffron)', border: 'var(--rf-border)' }}>
+              <div className="flex-1">
+                <p className="font-bold text-lg" style={{ fontFamily: 'var(--font-gujarati)' }}>{song.titleGujarati}</p>
+                <div className="mt-2 space-y-1 pl-2 border-l-2 border-gray-100">
+                  {song.lines.map((line, j) => (
+                    <div key={j} className="mb-2">
+                      <p className="text-gray-800 font-bold" style={{ fontFamily: 'var(--font-gujarati)' }}>{line.gujarati}</p>
+                      <p className="text-gray-500 text-xs">{line.roman}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <button
+                onClick={() => speak(song.titleGujarati + " " + song.lines.map(l => l.gujarati).join(" "), `balgeet-${i}`)}
+                className="speak-btn w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                style={{ background: 'var(--rf-cream)' }}
+              >
+                <SpeakIcon id={`balgeet-${i}`} currentlyPlaying={currentlyPlaying} ttsLoading={ttsLoading} />
+              </button>
+            </div>
+          ))
+        )}
       </div>
 
       {lightboxSrc && <ImageLightbox src={lightboxSrc} alt={lightboxAlt} onClose={() => setLightboxSrc(null)} />}
