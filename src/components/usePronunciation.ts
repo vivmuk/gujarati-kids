@@ -7,7 +7,7 @@ export function usePronunciation() {
   const [score, setScore] = useState<number | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
 
-  const startPronunciationCheck = async (targetWord: string) => {
+  const startPronunciationCheck = async (targetWord: string, timeoutMs = 3000) => {
     if (isRecording || isProcessing) return;
     setScore(null);
     try {
@@ -53,13 +53,13 @@ export function usePronunciation() {
       mediaRecorderRef.current = recorder;
       setIsRecording(true);
       
-      // Auto-stop after 3 seconds for short words
+      // Auto-stop after timeoutMs
       setTimeout(() => {
         if (mediaRecorderRef.current?.state === 'recording') {
           mediaRecorderRef.current.stop();
           setIsRecording(false);
         }
-      }, 3000);
+      }, timeoutMs);
       
     } catch {
       // Permission denied or error

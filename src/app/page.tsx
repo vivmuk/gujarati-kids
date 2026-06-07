@@ -8,12 +8,13 @@ import { StoriesSection } from '@/components/StoriesSection';
 import { QuizSection } from '@/components/QuizSection';
 import { ChatSection } from '@/components/ChatSection';
 import { ProgressSection } from '@/components/ProgressSection';
+import { MissionsSection } from '@/components/MissionsSection';
 import { BlockPrintBand, Guju, HalftoneOverlay, PlayTriangleIcon, ProgressRing, Starburst } from '@/components/RisoFolk';
 import { useSpeak } from '@/components/useSpeak';
 import { swar, vyanjan, words, categoryMeta, type LetterItem, type WordItem } from '@/data/gujarati';
 import { getLetterAudio, getLetterImage, getWordImage } from '@/data/assets';
 
-type TabId = 'home' | 'alphabet' | 'words' | 'phrases' | 'stories' | 'quiz' | 'chat' | 'progress';
+type TabId = 'home' | 'alphabet' | 'words' | 'phrases' | 'stories' | 'missions' | 'quiz' | 'chat' | 'progress';
 type LessonPointer = { type: 'letter' | 'word' | 'phrase' | 'story'; id: string };
 
 interface ProgressState {
@@ -47,6 +48,7 @@ const SECTION_TILES: Array<{ id: Exclude<TabId, 'home' | 'progress'>; gu: string
   { id: 'words', gu: 'શબ્દો', en: 'Words', sub: '9 categories · Surat' },
   { id: 'phrases', gu: 'વાક્યો', en: 'Phrases', sub: 'Say it out loud' },
   { id: 'stories', gu: 'વાર્તા', en: 'Stories', sub: 'Read along' },
+  { id: 'missions', gu: 'કાર્યો', en: 'Missions', sub: 'Build sentences' },
   { id: 'quiz', gu: 'રમત', en: 'Quiz', sub: 'Play & win stars' },
   { id: 'chat', gu: 'ગુજુ', en: 'Ask Guju', sub: 'Your tutor' },
 ];
@@ -57,6 +59,7 @@ const TAB_META: Record<TabId, { gu: string; en: string }> = {
   words: { gu: 'શબ્દો', en: 'Words' },
   phrases: { gu: 'વાક્યો', en: 'Phrases' },
   stories: { gu: 'વાર્તા', en: 'Stories' },
+  missions: { gu: 'કાર્યો', en: 'Missions' },
   quiz: { gu: 'રમત', en: 'Quiz' },
   chat: { gu: 'ગુજુ', en: 'Guju' },
   progress: { gu: 'પ્રગતિ', en: 'Progress' },
@@ -119,11 +122,12 @@ function migrateProgress(raw: unknown): ProgressState {
   return { ...base, lastActiveDate: today, streakDays: 1 };
 }
 
-function bottomActiveTab(activeTab: TabId): 'home' | 'alphabet' | 'quiz' | 'chat' {
+function bottomActiveTab(activeTab: TabId): 'home' | 'alphabet' | 'quiz' | 'chat' | 'progress' {
   if (activeTab === 'home') return 'home';
   if (activeTab === 'chat') return 'chat';
-  if (activeTab === 'quiz' || activeTab === 'progress') return 'quiz';
-  return 'alphabet';
+  if (activeTab === 'quiz') return 'quiz';
+  if (activeTab === 'progress') return 'progress';
+  return 'alphabet'; // Covers alphabet, words, phrases, stories, missions
 }
 
 function firstUnlearnedLetter(learned: string[]): LetterItem {
