@@ -7,7 +7,7 @@ import { PhrasesSection } from '@/components/PhrasesSection';
 import { StoriesSection } from '@/components/StoriesSection';
 import { QuizSection } from '@/components/QuizSection';
 import { ChatSection } from '@/components/ChatSection';
-import { ProgressSection } from '@/components/ProgressSection';
+import { SettingsSection } from '@/components/SettingsSection';
 import { MissionsSection } from '@/components/MissionsSection';
 import { BlockPrintBand, Guju, HalftoneOverlay, PlayTriangleIcon, ProgressRing, Starburst } from '@/components/RisoFolk';
 import { useSpeak } from '@/components/useSpeak';
@@ -62,15 +62,14 @@ const TAB_META: Record<TabId, { gu: string; en: string }> = {
   missions: { gu: 'કાર્યો', en: 'Missions' },
   quiz: { gu: 'રમત', en: 'Quiz' },
   chat: { gu: 'ગુજુ', en: 'Guju' },
-  progress: { gu: 'પ્રગતિ', en: 'Progress' },
+  progress: { gu: 'સેટિંગ્સ', en: 'Settings' },
 };
 
 const BOTTOM_TABS = [
   { id: 'home', gu: 'ઘર', en: 'HOME' },
-  { id: 'alphabet', gu: 'શીખો', en: 'LEARN' },
+  { id: 'words', gu: 'શબ્દો', en: 'VOCAB' },
   { id: 'chat', gu: '', en: '' },
   { id: 'quiz', gu: 'રમો', en: 'PLAY' },
-  { id: 'progress', gu: 'પ્રગતિ', en: 'PROGRESS' },
 ] as const;
 
 const TAB_ORDER: TabId[] = ['home', 'alphabet', 'words', 'phrases', 'stories', 'quiz', 'chat'];
@@ -122,12 +121,11 @@ function migrateProgress(raw: unknown): ProgressState {
   return { ...base, lastActiveDate: today, streakDays: 1 };
 }
 
-function bottomActiveTab(activeTab: TabId): 'home' | 'alphabet' | 'quiz' | 'chat' | 'progress' {
+function bottomActiveTab(activeTab: TabId): 'home' | 'words' | 'quiz' | 'chat' {
   if (activeTab === 'home') return 'home';
   if (activeTab === 'chat') return 'chat';
   if (activeTab === 'quiz') return 'quiz';
-  if (activeTab === 'progress') return 'progress';
-  return 'alphabet'; // Covers alphabet, words, phrases, stories, missions
+  return 'words'; // Covers alphabet, words, phrases, stories, missions, progress
 }
 
 function firstUnlearnedLetter(learned: string[]): LetterItem {
@@ -271,6 +269,18 @@ export default function GujaratiApp() {
               ગુજરાતી શીખો
             </h1>
           </div>
+          <button
+            type="button"
+            onClick={() => setActiveTab('progress')}
+            aria-label="Settings"
+            className="rf-pressable flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white"
+            style={{ border: '2px solid var(--rf-ink)', boxShadow: '2px 2px 0 var(--rf-ink)' }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--rf-indigo)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            </svg>
+          </button>
         </div>
 
         <section
@@ -455,7 +465,7 @@ export default function GujaratiApp() {
       case 'chat':
         return <ChatSection />;
       case 'progress':
-        return <ProgressSection progress={progress} />;
+        return <SettingsSection progress={progress} />;
     }
   };
 
@@ -464,7 +474,12 @@ export default function GujaratiApp() {
   return (
     <div className="min-h-screen bg-[var(--rf-cream)]">
       {activeTab !== 'home' && (
-        <header className="sticky top-0 z-40 border-b-2 bg-white" style={{ borderColor: 'var(--rf-ink)' }}>
+        <header
+          className="sticky top-0 z-40 border-b-2 bg-white"
+          style={{ borderColor: 'var(--rf-ink)' }}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+        >
           <div className="mx-auto flex max-w-lg items-center justify-between px-4 py-3">
             <button
               type="button"
@@ -484,7 +499,8 @@ export default function GujaratiApp() {
             <button
               type="button"
               onClick={() => setActiveTab('progress')}
-              className="rf-pressable min-h-11 rounded-xl px-3 py-1.5 text-xs font-bold uppercase tracking-[0.6px]"
+              aria-label="Settings"
+              className="rf-pressable flex min-h-11 min-w-11 items-center justify-center rounded-xl"
               style={{
                 background: activeTab === 'progress' ? 'var(--rf-saffron)' : 'var(--rf-card)',
                 color: activeTab === 'progress' ? '#fff' : 'var(--rf-indigo)',
@@ -492,17 +508,16 @@ export default function GujaratiApp() {
                 boxShadow: '2px 2px 0 var(--rf-ink)',
               }}
             >
-              {progress.wordsLearned.length} words
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="3" />
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+              </svg>
             </button>
           </div>
         </header>
       )}
 
-      <main
-        className="mx-auto max-w-lg pb-24"
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-      >
+      <main className="mx-auto max-w-lg pb-24">
         {renderContent()}
       </main>
 

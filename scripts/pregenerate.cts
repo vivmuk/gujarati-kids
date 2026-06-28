@@ -235,8 +235,63 @@ async function main() {
   const imageManifest: Record<string, string> = {};
 
   // ===== AUDIO PRE-GENERATION =====
+  // tts-xai-v1 is rate-limited to 60 RPM on Venice — 1100ms between calls keeps us safely under that.
   if (doAudio) {
+    const AUDIO_DELAY_MS = 1100;
     console.log('\n🎙️ Generating audio files...\n');
+
+    // Story lines + titles (prioritized: app currently has ~20 stories with no line audio)
+    for (const story of data.stories) {
+      for (let i = 0; i < story.lines.length; i++) {
+        const line = story.lines[i];
+        const slug = `story-${story.id}-line${i}`;
+        const filePath = path.join(AUDIO_DIR, `${slug}.mp3`);
+        audioManifest[slug] = `/audio/${slug}.mp3`;
+
+        if (fs.existsSync(filePath)) {
+          console.log(`  ⏩ Skip existing: ${slug}`);
+          continue;
+        }
+        await generateAudio(line.gujarati, filePath);
+        await sleep(AUDIO_DELAY_MS);
+      }
+      // Story title
+      const titleSlug = `story-${story.id}-title`;
+      const titlePath = path.join(AUDIO_DIR, `${titleSlug}.mp3`);
+      audioManifest[titleSlug] = `/audio/${titleSlug}.mp3`;
+      if (!fs.existsSync(titlePath)) {
+        await generateAudio(story.titleEnglish, titlePath);
+        await sleep(AUDIO_DELAY_MS);
+      }
+    }
+
+    // Words
+    for (const word of data.words) {
+      const slug = `word-${word.roman}`;
+      const filePath = path.join(AUDIO_DIR, `${slug}.mp3`);
+      audioManifest[slug] = `/audio/${slug}.mp3`;
+
+      if (fs.existsSync(filePath)) {
+        console.log(`  ⏩ Skip existing: ${slug}`);
+        continue;
+      }
+      await generateAudio(word.gujarati, filePath);
+      await sleep(AUDIO_DELAY_MS);
+    }
+
+    // Phrases
+    for (const phrase of data.phrases) {
+      const slug = `phrase-${phrase.roman.replace(/[^a-zA-Z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')}`;
+      const filePath = path.join(AUDIO_DIR, `${slug}.mp3`);
+      audioManifest[slug] = `/audio/${slug}.mp3`;
+
+      if (fs.existsSync(filePath)) {
+        console.log(`  ⏩ Skip existing: ${slug}`);
+        continue;
+      }
+      await generateAudio(phrase.gujarati, filePath);
+      await sleep(AUDIO_DELAY_MS);
+    }
 
     // Letters (swar + vyanjan) — pronounce the letter and its example
     for (const letter of [...data.swar, ...data.vyanjan]) {
@@ -251,60 +306,7 @@ async function main() {
       // For letters, speak: "અ, અનાર" (letter then example word)
       const text = `${letter.gujarati}, ${letter.example}`;
       await generateAudio(text, filePath);
-      await sleep(500);
-    }
-
-    // Words
-    for (const word of data.words) {
-      const slug = `word-${word.roman}`;
-      const filePath = path.join(AUDIO_DIR, `${slug}.mp3`);
-      audioManifest[slug] = `/audio/${slug}.mp3`;
-
-      if (fs.existsSync(filePath)) {
-        console.log(`  ⏩ Skip existing: ${slug}`);
-        continue;
-      }
-      await generateAudio(word.gujarati, filePath);
-      await sleep(500);
-    }
-
-    // Phrases
-    for (const phrase of data.phrases) {
-      const slug = `phrase-${phrase.roman.replace(/[^a-zA-Z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')}`;
-      const filePath = path.join(AUDIO_DIR, `${slug}.mp3`);
-      audioManifest[slug] = `/audio/${slug}.mp3`;
-
-      if (fs.existsSync(filePath)) {
-        console.log(`  ⏩ Skip existing: ${slug}`);
-        continue;
-      }
-      await generateAudio(phrase.gujarati, filePath);
-      await sleep(500);
-    }
-
-    // Story lines
-    for (const story of data.stories) {
-      for (let i = 0; i < story.lines.length; i++) {
-        const line = story.lines[i];
-        const slug = `story-${story.id}-line${i}`;
-        const filePath = path.join(AUDIO_DIR, `${slug}.mp3`);
-        audioManifest[slug] = `/audio/${slug}.mp3`;
-
-        if (fs.existsSync(filePath)) {
-          console.log(`  ⏩ Skip existing: ${slug}`);
-          continue;
-        }
-        await generateAudio(line.gujarati, filePath);
-        await sleep(500);
-      }
-      // Story title
-      const titleSlug = `story-${story.id}-title`;
-      const titlePath = path.join(AUDIO_DIR, `${titleSlug}.mp3`);
-      audioManifest[titleSlug] = `/audio/${titleSlug}.mp3`;
-      if (!fs.existsSync(titlePath)) {
-        await generateAudio(story.titleEnglish, titlePath);
-        await sleep(500);
-      }
+      await sleep(AUDIO_DELAY_MS);
     }
 
     // Write audio manifest
@@ -313,55 +315,13 @@ async function main() {
   }
 
   // ===== IMAGE PRE-GENERATION =====
+  // Order: stories first (highest priority — every line needs a scene), then words, then phrases, then letters.
+  // grok-imagine-image-quality is rate-limited to 120 RPM on Venice — 650ms between calls keeps us well under that.
   if (doImages) {
+    const IMAGE_DELAY_MS = 650;
     console.log('\n🎨 Generating image files...\n');
 
-    // Letters — illustrate the example word
-    for (const letter of [...data.swar, ...data.vyanjan]) {
-      const slug = `letter-${letter.roman}`;
-      const filePath = path.join(IMAGE_DIR, `${slug}.webp`);
-      imageManifest[slug] = `/images/gen/${slug}.webp`;
-
-      if (fs.existsSync(filePath)) {
-        console.log(`  ⏩ Skip existing: ${slug}`);
-        continue;
-      }
-      const prompt = `a ${letter.exampleEnglish} (for Gujarati letter ${letter.gujarati} = "${letter.roman}"), simple labeled educational illustration`;
-      await generateImage(prompt, filePath);
-      await sleep(1500);
-    }
-
-    // Words — one image per word
-    for (const word of data.words) {
-      const slug = `word-${word.roman}`;
-      const filePath = path.join(IMAGE_DIR, `${slug}.webp`);
-      imageManifest[slug] = `/images/gen/${slug}.webp`;
-
-      if (fs.existsSync(filePath)) {
-        console.log(`  ⏩ Skip existing: ${slug}`);
-        continue;
-      }
-      const prompt = `a ${word.english.toLowerCase()} (${word.gujarati}), labeled with both English and Gujarati text, educational vocabulary illustration`;
-      await generateImage(prompt, filePath);
-      await sleep(1500);
-    }
-
-    // Phrases — illustrate the concept
-    for (const phrase of data.phrases) {
-      const slug = `phrase-${phrase.roman.replace(/[^a-zA-Z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')}`;
-      const filePath = path.join(IMAGE_DIR, `${slug}.webp`);
-      imageManifest[slug] = `/images/gen/${slug}.webp`;
-
-      if (fs.existsSync(filePath)) {
-        console.log(`  ⏩ Skip existing: ${slug}`);
-        continue;
-      }
-      const prompt = `illustration of "${phrase.english}" concept, person saying "${phrase.gujarati}", labeled bilingual educational illustration`;
-      await generateImage(prompt, filePath);
-      await sleep(1500);
-    }
-
-    // Stories — one scene per story
+    // Stories — one scene per story + one image per line (prioritized: app currently has ~20 stories with no line art)
     for (const story of data.stories) {
       const slug = `story-${story.id}`;
       const filePath = path.join(IMAGE_DIR, `${slug}.webp`);
@@ -372,7 +332,7 @@ async function main() {
       } else {
         const prompt = `wordless illustration for children's story "${story.titleEnglish}", Indian village scene, warm and inviting, no text, no letters, no labels, no captions, no speech bubbles`;
         await generateImage(prompt, filePath);
-        await sleep(1500);
+        await sleep(IMAGE_DELAY_MS);
       }
 
       // Also generate per-line images
@@ -388,8 +348,53 @@ async function main() {
         }
         const linePrompt = `wordless illustration of: ${line.english}, Gujarati story scene, simple and clear for children, no text, no letters, no labels, no captions, no speech bubbles`;
         await generateImage(linePrompt, linePath);
-        await sleep(1500);
+        await sleep(IMAGE_DELAY_MS);
       }
+    }
+
+    // Words — one image per word
+    for (const word of data.words) {
+      const slug = `word-${word.roman}`;
+      const filePath = path.join(IMAGE_DIR, `${slug}.webp`);
+      imageManifest[slug] = `/images/gen/${slug}.webp`;
+
+      if (fs.existsSync(filePath)) {
+        console.log(`  ⏩ Skip existing: ${slug}`);
+        continue;
+      }
+      const prompt = `a ${word.english.toLowerCase()} (${word.gujarati}), labeled with both English and Gujarati text, educational vocabulary illustration`;
+      await generateImage(prompt, filePath);
+      await sleep(IMAGE_DELAY_MS);
+    }
+
+    // Phrases — illustrate the concept
+    for (const phrase of data.phrases) {
+      const slug = `phrase-${phrase.roman.replace(/[^a-zA-Z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')}`;
+      const filePath = path.join(IMAGE_DIR, `${slug}.webp`);
+      imageManifest[slug] = `/images/gen/${slug}.webp`;
+
+      if (fs.existsSync(filePath)) {
+        console.log(`  ⏩ Skip existing: ${slug}`);
+        continue;
+      }
+      const prompt = `illustration of "${phrase.english}" concept, person saying "${phrase.gujarati}", labeled bilingual educational illustration`;
+      await generateImage(prompt, filePath);
+      await sleep(IMAGE_DELAY_MS);
+    }
+
+    // Letters — illustrate the example word
+    for (const letter of [...data.swar, ...data.vyanjan]) {
+      const slug = `letter-${letter.roman}`;
+      const filePath = path.join(IMAGE_DIR, `${slug}.webp`);
+      imageManifest[slug] = `/images/gen/${slug}.webp`;
+
+      if (fs.existsSync(filePath)) {
+        console.log(`  ⏩ Skip existing: ${slug}`);
+        continue;
+      }
+      const prompt = `a ${letter.exampleEnglish} (for Gujarati letter ${letter.gujarati} = "${letter.roman}"), simple labeled educational illustration`;
+      await generateImage(prompt, filePath);
+      await sleep(IMAGE_DELAY_MS);
     }
 
     // Write image manifest

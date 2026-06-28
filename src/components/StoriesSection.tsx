@@ -42,6 +42,122 @@ function ImageLightbox({ src, alt, onClose }: { src: string; alt: string; onClos
   );
 }
 
+// Full-screen, swipeable popup for a story's sections (one card per line)
+function StorySectionPopup({ story, index, onIndexChange, onClose, speak, currentlyPlaying, ttsLoading }: {
+  story: StoryItem;
+  index: number;
+  onIndexChange: (index: number) => void;
+  onClose: () => void;
+  speak: (text: string, id: string, fallbackText?: string) => void;
+  currentlyPlaying: string | null;
+  ttsLoading: boolean;
+}) {
+  const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
+  const line = story.lines[index];
+  const id = `story-${story.id}-line-${index}`;
+  const isPlaying = currentlyPlaying === id;
+  const lineImg = getStoryLineImage(story.id, index);
+
+  const goNext = () => onIndexChange(Math.min(index + 1, story.lines.length - 1));
+  const goPrev = () => onIndexChange(Math.max(index - 1, 0));
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  };
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    const dy = Math.abs(e.changedTouches[0].clientY - touchStartY.current);
+    if (Math.abs(dx) < 50 || dy > Math.abs(dx) * 0.8) return;
+    if (dx < 0) goNext();
+    else goPrev();
+  };
+
+  if (!line) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(2px)' }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
+      <div className="relative w-full max-w-sm">
+        <button
+          onClick={onClose}
+          className="absolute -top-2 -right-2 z-10 w-9 h-9 rounded-full flex items-center justify-center text-gray-500 bg-white shadow-md hover:bg-gray-100 transition-colors text-lg font-bold"
+          aria-label="Close"
+        >
+          ✕
+        </button>
+
+        {index > 0 && (
+          <button
+            onClick={(e) => { e.stopPropagation(); goPrev(); }}
+            aria-label="Previous section"
+            className="absolute left-[-14px] top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full flex items-center justify-center bg-white shadow-md text-lg font-black active:scale-90"
+            style={{ color: 'var(--rf-indigo)' }}
+          >
+            ‹
+          </button>
+        )}
+        {index < story.lines.length - 1 && (
+          <button
+            onClick={(e) => { e.stopPropagation(); goNext(); }}
+            aria-label="Next section"
+            className="absolute right-[-14px] top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full flex items-center justify-center bg-white shadow-md text-lg font-black active:scale-90"
+            style={{ color: 'var(--rf-indigo)' }}
+          >
+            ›
+          </button>
+        )}
+
+        <div
+          className="relative bg-white rounded-3xl shadow-2xl w-full p-5 flex flex-col items-center gap-3"
+          style={{ border: '2.5px solid var(--rf-indigo, #3B3596)', boxShadow: '6px 6px 0 var(--rf-indigo, #3B3596)' }}
+        >
+          <span className="text-xs px-2 py-0.5 rounded-full font-bold"
+            style={{ background: 'var(--saffron-100)', color: 'var(--saffron-700)' }}>
+            Section {index + 1} of {story.lines.length}
+          </span>
+
+          <AssetImage
+            src={lineImg}
+            alt={line.english}
+            className="w-full rounded-2xl object-contain bg-white"
+            fallback={
+              <div className="w-full h-48 rounded-2xl bg-white flex items-center justify-center text-5xl" style={{ border: '1.5px solid #e5e7eb' }}>
+                📖
+              </div>
+            }
+          />
+
+          <p className="text-2xl font-black text-center leading-tight" style={{ fontFamily: 'var(--font-gujarati)', color: 'var(--rf-indigo, #3B3596)' }}>
+            {line.gujarati}
+          </p>
+          <p className="text-base text-gray-500 font-semibold -mt-1">{line.roman}</p>
+          <p className="text-lg font-bold text-center" style={{ color: 'var(--rf-ink, #1a1a1a)' }}>{line.english}</p>
+
+          <button
+            onClick={() => speak(getStoryLineAudio(story.id, index) || line.gujarati, id, line.gujarati)}
+            className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-transform active:scale-95"
+            style={{ background: isPlaying ? 'var(--saffron-200, #FDE68A)' : 'var(--saffron-500, #FFA63D)', color: 'white', fontSize: 24 }}
+            aria-label="Play line audio"
+          >
+            <SpeakIcon id={id} currentlyPlaying={currentlyPlaying} ttsLoading={ttsLoading} />
+          </button>
+        </div>
+
+        <p className="text-center text-white text-xs font-bold mt-3 drop-shadow">
+          swipe to browse sections
+        </p>
+      </div>
+    </div>
+  );
+}
+
 // Try static video first; fall back to children (generate button) on error
 function StaticVideo({ storyId, fallback }: { storyId: string; fallback: React.ReactNode }) {
   const [failed, setFailed] = useState(false);
@@ -66,6 +182,7 @@ export function StoriesSection({ storiesRead, onStoryRead }: Props) {
   const [storyVideos, setStoryVideos] = useState<StoryVideoState>({});
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const [lightboxAlt, setLightboxAlt] = useState<string>('');
+  const [sectionIndex, setSectionIndex] = useState<number | null>(null);
   const videoUrlsRef = useRef<string[]>([]);
   const { speak, currentlyPlaying, ttsLoading } = useSpeak();
 
@@ -234,37 +351,42 @@ export function StoriesSection({ storiesRead, onStoryRead }: Props) {
           </div>
         ) : null}
 
-        <div className="space-y-3">
+        <p className="px-1 mb-2 text-xs font-black uppercase tracking-[0.7px] text-gray-500">
+          Story sections · swipe or tap to open
+        </p>
+        <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 snap-x snap-mandatory" style={{ scrollbarWidth: 'none' }}>
           {activeStory.lines.map((line, i) => {
             const id = `story-${activeStory.id}-line-${i}`;
             const isPlaying = currentlyPlaying === id;
             const lineImg = getStoryLineImage(activeStory.id, i);
             return (
-              <div key={i} className={`rf-card p-3 flex items-start gap-3 ${isPlaying ? 'ring-2 ring-amber-300' : ''}`}>
+              <button
+                key={i}
+                type="button"
+                onClick={() => setSectionIndex(i)}
+                className={`rf-card snap-start flex-shrink-0 p-3 text-left transition-all active:scale-[0.97] ${isPlaying ? 'ring-2 ring-amber-300' : ''}`}
+                style={{ width: 168 }}
+              >
                 <AssetImage
                   src={lineImg}
                   alt={line.english}
-                  className="w-20 h-20 rounded-xl object-contain flex-shrink-0 border-2 border-white shadow-sm bg-white"
+                  className="w-full h-28 rounded-xl object-contain border-2 border-white shadow-sm bg-white mb-2"
+                  fallback={
+                    <div className="w-full h-28 rounded-xl border-2 border-white shadow-sm bg-white mb-2 flex items-center justify-center text-3xl">
+                      📖
+                    </div>
+                  }
                 />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs px-2 py-0.5 rounded-full font-bold flex-shrink-0"
-                      style={{ background: 'var(--saffron-100)', color: 'var(--saffron-700)' }}>
-                      {i + 1}
-                    </span>
-                    <p className="text-base font-bold" style={{ fontFamily: 'var(--font-gujarati)' }}>{line.gujarati}</p>
-                  </div>
-                  <p className="text-sm text-gray-500 mt-0.5">{line.roman}</p>
-                  <p className="text-sm text-gray-700 font-medium mt-0.5">{line.english}</p>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xs px-2 py-0.5 rounded-full font-bold flex-shrink-0"
+                    style={{ background: 'var(--saffron-100)', color: 'var(--saffron-700)' }}>
+                    {i + 1}
+                  </span>
+                  <p className="text-sm font-bold truncate" style={{ fontFamily: 'var(--font-gujarati)' }}>{line.gujarati}</p>
                 </div>
-                <button
-                  onClick={() => speak(getStoryLineAudio(activeStory.id, i) || line.gujarati, id, line.gujarati)}
-                  className="speak-btn w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
-                  style={{ background: isPlaying ? 'var(--saffron-200)' : 'var(--saffron-100)', color: 'var(--saffron-700)' }}
-                >
-                  <SpeakIcon id={id} currentlyPlaying={currentlyPlaying} ttsLoading={ttsLoading} />
-                </button>
-              </div>
+                <p className="text-xs text-gray-500 truncate">{line.roman}</p>
+                <p className="text-xs text-gray-700 font-medium truncate">{line.english}</p>
+              </button>
             );
           })}
         </div>
@@ -299,6 +421,18 @@ export function StoriesSection({ storiesRead, onStoryRead }: Props) {
         </button>
 
         {lightboxSrc && <ImageLightbox src={lightboxSrc} alt={lightboxAlt} onClose={() => setLightboxSrc(null)} />}
+
+        {sectionIndex !== null && (
+          <StorySectionPopup
+            story={activeStory}
+            index={sectionIndex}
+            onIndexChange={setSectionIndex}
+            onClose={() => setSectionIndex(null)}
+            speak={speak}
+            currentlyPlaying={currentlyPlaying}
+            ttsLoading={ttsLoading}
+          />
+        )}
       </div>
     );
   }
@@ -337,10 +471,13 @@ export function StoriesSection({ storiesRead, onStoryRead }: Props) {
           stories.map((story) => {
             const storyIsRead = storiesRead.includes(story.id);
           return (
-            <button
+            <div
               key={story.id}
+              role="button"
+              tabIndex={0}
               onClick={() => setActiveStory(story)}
-              className={`rf-card w-full text-left p-3 rf-pressable transition-all active:scale-[0.98] ${storyIsRead ? 'ring-2 ring-emerald-200' : ''}`}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setActiveStory(story); }}
+              className={`rf-card w-full text-left p-3 rf-pressable transition-all active:scale-[0.98] cursor-pointer ${storyIsRead ? 'ring-2 ring-emerald-200' : ''}`}
               style={{ boxShadow: storyIsRead ? '4px 4px 0 var(--emerald-400)' : 'var(--rf-shadow-indigo)' }}
             >
               <div className="flex items-center gap-3">
@@ -383,7 +520,7 @@ export function StoriesSection({ storiesRead, onStoryRead }: Props) {
                 </div>
                 <span className="text-gray-300 text-xl">›</span>
               </div>
-            </button>
+            </div>
           );
         })
         ) : (

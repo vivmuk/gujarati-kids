@@ -1,8 +1,8 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { swar, vyanjan, words, phrases, stories } from '@/data/gujarati';
 import { HalftoneOverlay } from './RisoFolk';
-import { getStreakData, getBeltForPercentage, updateStreak, type StreakData } from '@/lib/streaks';
+import { getBeltForPercentage, updateStreak, type StreakData } from '@/lib/streaks';
 
 interface ProgressState {
   lettersLearned: string[];
@@ -22,13 +22,13 @@ const GUJARAT_MAP = [
   { id: 'gir', name: 'Gir Forest', gujarati: 'ગીર જંગલ', icon: '🦁', req: 100, desc: 'Home of the Asiatic Lion!' },
 ];
 
-export function ProgressSection({ progress }: { progress: ProgressState }) {
-  const [streak, setStreak] = useState<StreakData>({ currentStreak: 0, lastLoginDate: null, bestStreak: 0 });
+export function SettingsSection({ progress }: { progress: ProgressState }) {
+  const [streak] = useState<StreakData>(() =>
+    typeof window === 'undefined'
+      ? { currentStreak: 0, lastLoginDate: null, bestStreak: 0 }
+      : updateStreak()
+  );
   const [showDetails, setShowDetails] = useState(false);
-
-  useEffect(() => {
-    setStreak(updateStreak());
-  }, []);
 
   const totalLetters = swar.length + vyanjan.length;
   const totalWords = words.length;
@@ -60,8 +60,8 @@ export function ProgressSection({ progress }: { progress: ProgressState }) {
         <div className="relative flex items-center gap-3 p-4 text-white">
           <img src="/images/progress.webp" alt="" className="w-14 h-14 rounded-xl object-contain border-2 border-white/30" />
           <div>
-            <p className="font-bold text-lg">Your Progress</p>
-            <p className="text-white/70 text-sm">See how much you've learned!</p>
+            <p className="font-bold text-lg">Settings</p>
+            <p className="text-white/70 text-sm">Your progress & app preferences</p>
           </div>
         </div>
       </div>
@@ -95,12 +95,12 @@ export function ProgressSection({ progress }: { progress: ProgressState }) {
       <div className="mb-6 relative pb-4">
         <h3 className="font-black text-xl mb-4 text-center" style={{ color: 'var(--rf-indigo)' }}>Gujarat Journey</h3>
         <div className="absolute left-8 top-12 bottom-0 w-1.5 bg-gray-200 rounded-full" />
-        
+
         <div className="space-y-6 relative z-10">
           {GUJARAT_MAP.map((city, idx) => {
             const isUnlocked = overall >= city.req;
             const isNext = !isUnlocked && (idx === 0 || overall >= GUJARAT_MAP[idx - 1].req);
-            
+
             return (
               <div key={city.id} className={`flex items-start gap-4 transition-all ${isUnlocked ? 'opacity-100' : 'opacity-60 grayscale'}`}>
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border-4 z-10 ${isUnlocked ? 'bg-white border-green-500' : isNext ? 'bg-amber-100 border-amber-400 animate-pulse' : 'bg-gray-100 border-gray-300'}`}>
