@@ -68,6 +68,7 @@ const TAB_META: Record<TabId, { gu: string; en: string }> = {
 const BOTTOM_TABS = [
   { id: 'home', gu: 'ઘર', en: 'HOME' },
   { id: 'words', gu: 'શબ્દો', en: 'VOCAB' },
+  { id: 'stories', gu: 'વાર્તા', en: 'STORIES' },
   { id: 'chat', gu: '', en: '' },
   { id: 'quiz', gu: 'રમો', en: 'PLAY' },
 ] as const;
@@ -121,11 +122,12 @@ function migrateProgress(raw: unknown): ProgressState {
   return { ...base, lastActiveDate: today, streakDays: 1 };
 }
 
-function bottomActiveTab(activeTab: TabId): 'home' | 'words' | 'quiz' | 'chat' {
+function bottomActiveTab(activeTab: TabId): 'home' | 'words' | 'stories' | 'quiz' | 'chat' {
   if (activeTab === 'home') return 'home';
   if (activeTab === 'chat') return 'chat';
   if (activeTab === 'quiz') return 'quiz';
-  return 'words'; // Covers alphabet, words, phrases, stories, missions, progress
+  if (activeTab === 'stories') return 'stories';
+  return 'words'; // Covers alphabet, words, phrases, missions, progress
 }
 
 function firstUnlearnedLetter(learned: string[]): LetterItem {
