@@ -8,13 +8,12 @@ import { StoriesSection } from '@/components/StoriesSection';
 import { QuizSection } from '@/components/QuizSection';
 import { ChatSection } from '@/components/ChatSection';
 import { SettingsSection } from '@/components/SettingsSection';
-import { MissionsSection } from '@/components/MissionsSection';
 import { BlockPrintBand, Guju, HalftoneOverlay, PlayTriangleIcon, ProgressRing, Starburst } from '@/components/RisoFolk';
 import { useSpeak } from '@/components/useSpeak';
 import { swar, vyanjan, words, categoryMeta, type LetterItem, type WordItem } from '@/data/gujarati';
 import { getLetterAudio, getLetterImage, getWordImage } from '@/data/assets';
 
-type TabId = 'home' | 'alphabet' | 'words' | 'phrases' | 'stories' | 'missions' | 'quiz' | 'chat' | 'progress';
+type TabId = 'home' | 'alphabet' | 'words' | 'phrases' | 'stories' | 'quiz' | 'chat' | 'progress';
 type LessonPointer = { type: 'letter' | 'word' | 'phrase' | 'story'; id: string };
 
 interface ProgressState {
@@ -48,7 +47,6 @@ const SECTION_TILES: Array<{ id: Exclude<TabId, 'home' | 'progress'>; gu: string
   { id: 'words', gu: 'શબ્દો', en: 'Words', sub: '9 categories · Surat' },
   { id: 'phrases', gu: 'વાક્યો', en: 'Phrases', sub: 'Say it out loud' },
   { id: 'stories', gu: 'વાર્તા', en: 'Stories', sub: 'Read along' },
-  { id: 'missions', gu: 'કાર્યો', en: 'Missions', sub: 'Build sentences' },
   { id: 'quiz', gu: 'રમત', en: 'Quiz', sub: 'Play & win stars' },
   { id: 'chat', gu: 'ગુજુ', en: 'Ask Guju', sub: 'Your tutor' },
 ];
@@ -59,7 +57,6 @@ const TAB_META: Record<TabId, { gu: string; en: string }> = {
   words: { gu: 'શબ્દો', en: 'Words' },
   phrases: { gu: 'વાક્યો', en: 'Phrases' },
   stories: { gu: 'વાર્તા', en: 'Stories' },
-  missions: { gu: 'કાર્યો', en: 'Missions' },
   quiz: { gu: 'રમત', en: 'Quiz' },
   chat: { gu: 'ગુજુ', en: 'Guju' },
   progress: { gu: 'સેટિંગ્સ', en: 'Settings' },
@@ -127,7 +124,7 @@ function bottomActiveTab(activeTab: TabId): 'home' | 'words' | 'stories' | 'quiz
   if (activeTab === 'chat') return 'chat';
   if (activeTab === 'quiz') return 'quiz';
   if (activeTab === 'stories') return 'stories';
-  return 'words'; // Covers alphabet, words, phrases, missions, progress
+  return 'words'; // Covers alphabet, words, phrases, progress
 }
 
 function firstUnlearnedLetter(learned: string[]): LetterItem {
@@ -166,6 +163,33 @@ export default function GujaratiApp() {
       setActiveTab(TAB_ORDER[currentIndex - 1]);
     }
   };
+
+  // Push a history entry per tab change so the Android/iOS back-gesture pops
+  // in-app navigation first instead of immediately leaving the site.
+  const isPoppingRef = useRef(false);
+
+  useEffect(() => {
+    window.history.replaceState(null, '', window.location.pathname);
+  }, []);
+
+  useEffect(() => {
+    if (isPoppingRef.current) {
+      isPoppingRef.current = false;
+      return;
+    }
+    const url = activeTab === 'home' ? window.location.pathname : `?tab=${activeTab}`;
+    window.history.pushState(null, '', url);
+  }, [activeTab]);
+
+  useEffect(() => {
+    const onPopState = () => {
+      isPoppingRef.current = true;
+      const tab = new URLSearchParams(window.location.search).get('tab') as TabId | null;
+      setActiveTab(tab || 'home');
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
 
   useEffect(() => {
     let nextProgress = DEFAULT_PROGRESS;
@@ -544,7 +568,7 @@ export default function GujaratiApp() {
                       onClick={() => setActiveTab('chat')}
                       className="absolute -top-6 guju-badge flex flex-col items-center justify-center h-16 w-16 rounded-full z-10"
                       style={{
-                        background: 'linear-gradient(135deg, var(--rf-saffron) 0%, var(--rf-indigo) 100%)',
+                        background: 'linear-gradient(135deg, var(--rf-pink) 0%, var(--rf-indigo) 100%)',
                         border: '3px solid var(--rf-ink)',
                       }}
                       aria-label="Guju AI Chat"

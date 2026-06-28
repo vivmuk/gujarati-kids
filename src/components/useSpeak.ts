@@ -4,7 +4,9 @@ import { useState, useRef, useCallback } from 'react';
 export function useSpeak() {
   const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null);
   const [ttsLoading, setTtsLoading] = useState(false);
+  const [ttsProgress, setTtsProgress] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const progressTimerRef = useRef<number | null>(null);
 
   const speak = useCallback(async (textOrPath: string, id: string, fallbackText?: string) => {
     // Toggle off if already playing this item
@@ -27,6 +29,17 @@ export function useSpeak() {
 
     const playTts = async (text: string) => {
       setTtsLoading(true);
+
+      // Venice TTS returns the whole clip in one response — there's no real
+      // progress signal. Simulate one (fast climb, asymptotic near the end)
+      // so the percentage keeps moving instead of stalling on a spinner.
+      const start = performance.now();
+      setTtsProgress(4);
+      progressTimerRef.current = window.setInterval(() => {
+        const elapsed = performance.now() - start;
+        setTtsProgress(Math.min(92, Math.round(92 * (1 - Math.exp(-elapsed / 1100)))));
+      }, 80);
+
       try {
         const res = await fetch('/api/tts', {
           method: 'POST',
@@ -40,6 +53,11 @@ export function useSpeak() {
         });
         if (!res.ok) throw new Error('TTS failed');
         const blob = await res.blob();
+
+        if (progressTimerRef.current) window.clearInterval(progressTimerRef.current);
+        setTtsProgress(100);
+        await new Promise(r => setTimeout(r, 150));
+
         const url = URL.createObjectURL(blob);
         const audio = new Audio(url);
         audioRef.current = audio;
@@ -56,7 +74,12 @@ export function useSpeak() {
         console.error('TTS error:', err);
         setCurrentlyPlaying(null);
       } finally {
+        if (progressTimerRef.current) {
+          window.clearInterval(progressTimerRef.current);
+          progressTimerRef.current = null;
+        }
         setTtsLoading(false);
+        setTtsProgress(0);
       }
     };
 
@@ -82,5 +105,5 @@ export function useSpeak() {
     }
   }, [currentlyPlaying]);
 
-  return { speak, currentlyPlaying, ttsLoading };
+  return { speak, currentlyPlaying, ttsLoading, ttsProgress };
 }

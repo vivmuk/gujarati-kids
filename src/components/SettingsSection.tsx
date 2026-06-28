@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { swar, vyanjan, words, phrases, stories } from '@/data/gujarati';
 import { HalftoneOverlay } from './RisoFolk';
+import { GujaratMap } from './GujaratMap';
 import { getBeltForPercentage, updateStreak, type StreakData } from '@/lib/streaks';
 
 interface ProgressState {
@@ -13,13 +14,14 @@ interface ProgressState {
   storiesRead: string[];
 }
 
+// x/y are percentage coordinates on the GujaratMap silhouette (see GujaratMap.tsx)
 const GUJARAT_MAP = [
-  { id: 'ahmedabad', name: 'Ahmedabad', gujarati: 'અમદાવાદ', icon: '🏙️', req: 0, desc: 'Starting point! Sabarmati Ashram.' },
-  { id: 'surat', name: 'Surat', gujarati: 'સુરત', icon: '💎', req: 20, desc: 'Diamond city & delicious Locho!' },
-  { id: 'vadodara', name: 'Vadodara', gujarati: 'વડોદરા', icon: '🏛️', req: 40, desc: 'Cultural capital & Garba.' },
-  { id: 'rajkot', name: 'Rajkot', gujarati: 'રાજકોટ', icon: '🎨', req: 60, desc: 'Colors of Saurashtra.' },
-  { id: 'kutch', name: 'Kutch', gujarati: 'કચ્છ', icon: '🏜️', req: 80, desc: 'White Desert & Rann Utsav.' },
-  { id: 'gir', name: 'Gir Forest', gujarati: 'ગીર જંગલ', icon: '🦁', req: 100, desc: 'Home of the Asiatic Lion!' },
+  { id: 'ahmedabad', name: 'Ahmedabad', gujarati: 'અમદાવાદ', icon: '🏙️', req: 0, desc: 'Starting point! Sabarmati Ashram.', x: 70, y: 14 },
+  { id: 'vadodara', name: 'Vadodara', gujarati: 'વડોદરા', icon: '🏛️', req: 20, desc: 'Cultural capital & Garba.', x: 68, y: 34 },
+  { id: 'rajkot', name: 'Rajkot', gujarati: 'રાજકોટ', icon: '🎨', req: 40, desc: 'Colors of Saurashtra.', x: 32, y: 42 },
+  { id: 'kutch', name: 'Kutch', gujarati: 'કચ્છ', icon: '🏜️', req: 60, desc: 'White Desert & Rann Utsav.', x: 24, y: 14 },
+  { id: 'gir', name: 'Gir Forest', gujarati: 'ગીર જંગલ', icon: '🦁', req: 80, desc: 'Home of the Asiatic Lion!', x: 38, y: 60 },
+  { id: 'surat', name: 'Surat', gujarati: 'સુરત', icon: '💎', req: 100, desc: 'Final stop! Diamond city & delicious Locho!', x: 70, y: 78 },
 ];
 
 export function SettingsSection({ progress }: { progress: ProgressState }) {
@@ -92,38 +94,9 @@ export function SettingsSection({ progress }: { progress: ProgressState }) {
       </div>
 
       {/* Map Unlock System */}
-      <div className="mb-6 relative pb-4">
+      <div className="mb-6">
         <h3 className="font-black text-xl mb-4 text-center" style={{ color: 'var(--rf-indigo)' }}>Gujarat Journey</h3>
-        <div className="absolute left-8 top-12 bottom-0 w-1.5 bg-gray-200 rounded-full" />
-
-        <div className="space-y-6 relative z-10">
-          {GUJARAT_MAP.map((city, idx) => {
-            const isUnlocked = overall >= city.req;
-            const isNext = !isUnlocked && (idx === 0 || overall >= GUJARAT_MAP[idx - 1].req);
-
-            return (
-              <div key={city.id} className={`flex items-start gap-4 transition-all ${isUnlocked ? 'opacity-100' : 'opacity-60 grayscale'}`}>
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border-4 z-10 ${isUnlocked ? 'bg-white border-green-500' : isNext ? 'bg-amber-100 border-amber-400 animate-pulse' : 'bg-gray-100 border-gray-300'}`}>
-                  <span className="text-xl">{isUnlocked ? city.icon : isNext ? '📍' : '🔒'}</span>
-                </div>
-                <div className={`rf-card p-3 flex-1 ${isNext ? 'ring-2 ring-amber-400' : ''}`} style={{ boxShadow: isUnlocked ? 'var(--rf-shadow-indigo)' : 'none', border: isUnlocked ? 'var(--rf-border)' : '2px solid #e5e7eb' }}>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h4 className="font-bold text-gray-900">{city.name}</h4>
-                      <p className="text-sm text-gray-500" style={{ fontFamily: 'var(--font-gujarati)' }}>{city.gujarati}</p>
-                    </div>
-                    {!isUnlocked && (
-                      <span className="text-xs font-bold px-2 py-1 bg-gray-100 rounded-lg text-gray-500">
-                        {city.req}% req
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-gray-600 mt-2 font-medium">{city.desc}</p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        <GujaratMap cities={GUJARAT_MAP} overall={overall} />
       </div>
 
       <button

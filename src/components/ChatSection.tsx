@@ -186,7 +186,7 @@ export function ChatSection() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [voiceOn, setVoiceOn] = useState(true); // auto-speak Guju's replies
-  const { speak, currentlyPlaying, ttsLoading } = useSpeak();
+  const { speak, currentlyPlaying, ttsLoading, ttsProgress } = useSpeak();
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const videoUrlsRef = useRef<string[]>([]);
@@ -521,7 +521,7 @@ export function ChatSection() {
 
                 {!isUser && !msg.streaming && msg.content && (
                   <button onClick={() => speak(msg.content, msg.id)} className="mt-1 text-xs opacity-60 hover:opacity-100 transition-opacity">
-                    <SpeakIcon id={msg.id} currentlyPlaying={currentlyPlaying} ttsLoading={ttsLoading} /> Listen
+                    <SpeakIcon id={msg.id} currentlyPlaying={currentlyPlaying} ttsLoading={ttsLoading} ttsProgress={ttsProgress} /> Listen
                   </button>
                 )}
               </div>
