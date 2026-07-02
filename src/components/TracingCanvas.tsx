@@ -3,13 +3,25 @@ import { useRef, useEffect, useState } from 'react';
 
 interface Props {
   letter: string;
+  onTraceComplete?: () => void;
 }
 
-export function TracingCanvas({ letter }: Props) {
+export function TracingCanvas({ letter, onTraceComplete }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasDrawn, setHasDrawn] = useState(false);
+  const [celebrating, setCelebrating] = useState(false);
+
+  const clearCanvas = () => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (!canvas || !ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    setHasDrawn(false);
+    setCelebrating(false);
+    ctx.beginPath();
+  };
 
   const resizeCanvas = () => {
     const canvas = canvasRef.current;
@@ -70,13 +82,9 @@ export function TracingCanvas({ letter }: Props) {
     ctx.moveTo(x, y);
   };
 
-  const clearCanvas = () => {
-    const canvas = canvasRef.current;
-    const ctx = canvas?.getContext('2d');
-    if (!canvas || !ctx) return;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    setHasDrawn(false);
-    ctx.beginPath();
+  const finishTracing = () => {
+    setCelebrating(true);
+    onTraceComplete?.();
   };
 
   return (
@@ -107,20 +115,42 @@ export function TracingCanvas({ letter }: Props) {
       {/* Controls */}
       <div className="absolute bottom-3 right-3 flex gap-2">
         {hasDrawn && (
-          <button 
-            onClick={clearCanvas}
-            className="p-2 bg-white rounded-full shadow-md border-2 text-sm font-bold active:scale-95 transition-transform"
-            style={{ borderColor: 'var(--rf-ink)' }}
-          >
-            🗑️ Clear
-          </button>
+          <>
+            <button
+              onClick={clearCanvas}
+              className="p-2 bg-white rounded-full shadow-md border-2 text-sm font-bold active:scale-95 transition-transform"
+              style={{ borderColor: 'var(--rf-ink)' }}
+            >
+              🗑️ Clear
+            </button>
+            <button
+              onClick={finishTracing}
+              className="p-2 rounded-full shadow-md border-2 text-sm font-bold text-white active:scale-95 transition-transform"
+              style={{ borderColor: 'var(--rf-ink)', background: 'var(--rf-saffron)' }}
+            >
+              ✍️ Done tracing!
+            </button>
+          </>
         )}
       </div>
-      
+
       {/* Hint */}
       {!hasDrawn && (
         <div className="absolute top-3 left-3 text-sm font-bold text-gray-500 bg-white/80 px-2 py-1 rounded-lg">
           ✍️ Trace the letter
+        </div>
+      )}
+
+      {/* Celebration */}
+      {celebrating && (
+        <div
+          className="absolute inset-0 flex items-center justify-center pointer-events-none animate-fade-in"
+          style={{ background: 'rgba(255,255,255,0.85)' }}
+        >
+          <div className="animate-scale-in text-center">
+            <p className="text-5xl">🌟</p>
+            <p className="mt-1 text-lg font-black" style={{ color: 'var(--rf-indigo)' }}>Great job!</p>
+          </div>
         </div>
       )}
     </div>
