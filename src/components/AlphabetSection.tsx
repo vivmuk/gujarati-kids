@@ -6,12 +6,14 @@ import { SpeakIcon } from './SpeakIcon';
 import { HalftoneOverlay } from './RisoFolk';
 import { getLetterAudio, getLetterImage } from '@/data/assets';
 import { TracingCanvas } from './TracingCanvas';
+import { usePronunciation } from './usePronunciation';
 
 export function AlphabetSection({ onLetterLearned }: { onLetterLearned: (letter: string) => void }) {
   const [tab, setTab] = useState<'swar' | 'vyanjan'>('swar');
   const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
   const [mode, setMode] = useState<'listen' | 'trace'>('listen');
   const { speak, currentlyPlaying, ttsLoading } = useSpeak();
+  const { isRecording, isProcessing, score, startPronunciationCheck, stopPronunciationCheck, setScore } = usePronunciation();
 
   const letters = tab === 'swar' ? swar : vyanjan;
   const selected = letters.find(l => l.gujarati === selectedLetter);
@@ -38,6 +40,7 @@ export function AlphabetSection({ onLetterLearned }: { onLetterLearned: (letter:
               onClick={() => {
                 setSelectedLetter(letter.gujarati);
                 setMode('listen');
+                setScore(null);
                 onLetterLearned(letter.gujarati);
                 if (audioPath) speak(audioPath, `letter-${letter.roman}`);
               }}
@@ -70,7 +73,7 @@ export function AlphabetSection({ onLetterLearned }: { onLetterLearned: (letter:
           </div>
 
           {mode === 'trace' ? (
-            <TracingCanvas letter={selected.gujarati} />
+            <TracingCanvas letter={selected.gujarati} onTraceComplete={() => onLetterLearned(selected.gujarati)} />
           ) : (
             <div className="flex items-start gap-4">
               {/* Pre-generated illustration */}
@@ -84,7 +87,7 @@ export function AlphabetSection({ onLetterLearned }: { onLetterLearned: (letter:
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-4xl font-black text-gray-800" style={{ fontFamily: 'var(--font-gujarati)' }}>
-                      {selected.gujarati} <span className="text-xl text-gray-500">"{selected.roman}"</span>
+                      {selected.gujarati} <span className="text-xl text-gray-500">&quot;{selected.roman}&quot;</span>
                     </h3>
                   </div>
                   <button 
@@ -99,6 +102,40 @@ export function AlphabetSection({ onLetterLearned }: { onLetterLearned: (letter:
                 
                 <div className="mt-2 p-2 rounded-lg" style={{ background: 'var(--rf-cream)' }}>
                   <p className="text-sm"><span className="font-bold" style={{ fontFamily: 'var(--font-gujarati)' }}>{selected.example}</span> = {selected.exampleEnglish}</p>
+                </div>
+
+                {/* Pronunciation Practice */}
+                <div className="w-full mt-4 pt-4 border-t border-gray-200">
+                  <p className="text-xs font-bold text-gray-500 mb-2 uppercase">Practice Pronunciation</p>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onMouseDown={() => startPronunciationCheck(selected.example)}
+                      onMouseUp={stopPronunciationCheck}
+                      onTouchStart={() => startPronunciationCheck(selected.example)}
+                      onTouchEnd={stopPronunciationCheck}
+                      className={`p-3 rounded-full flex-shrink-0 transition-all ${isRecording ? 'bg-red-500 text-white animate-pulse shadow-lg scale-110' : 'bg-gray-100 text-gray-600 active:scale-95'}`}
+                    >
+                      🎤
+                    </button>
+                    <div className="flex-1">
+                      {isRecording ? (
+                        <p className="text-sm font-bold text-red-500">Listening... Release to score</p>
+                      ) : isProcessing ? (
+                        <p className="text-sm font-bold text-gray-500 animate-pulse">Checking...</p>
+                      ) : score !== null ? (
+                        <div className="flex items-center gap-1">
+                          <span className="text-xl">{score >= 1 ? '⭐' : '❌'}</span>
+                          <span className="text-xl">{score >= 2 ? '⭐' : '⬛'}</span>
+                          <span className="text-xl">{score >= 3 ? '⭐' : '⬛'}</span>
+                          <span className="text-xs font-bold text-gray-500 ml-2">
+                            {score === 3 ? 'Perfect!' : score > 0 ? 'Good try!' : 'Try again'}
+                          </span>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-500">Hold mic and say {selected.example}</p>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

@@ -5,10 +5,13 @@ import { useSpeak } from './useSpeak';
 import { SpeakIcon } from './SpeakIcon';
 import { HalftoneOverlay, PlayTriangleIcon } from './RisoFolk';
 import { getStoryImage, getStoryLineAudio, getStoryLineImage, getStoryTitleAudio, getStoryVideo } from '@/data/assets';
+import { StoryQuiz } from './StoryQuiz';
+import { SingAlong } from './SingAlong';
 
 interface Props {
   storiesRead: string[];
   onStoryRead: (storyId: string) => void;
+  onQuizComplete: (score: number, total: number) => void;
 }
 
 interface AssetImageProps {
@@ -176,13 +179,15 @@ function StaticVideo({ storyId, fallback }: { storyId: string; fallback: React.R
 
 type StoryVideoState = Record<string, { url: string | null; loading: boolean; error: string | null }>;
 
-export function StoriesSection({ storiesRead, onStoryRead }: Props) {
+export function StoriesSection({ storiesRead, onStoryRead, onQuizComplete }: Props) {
   const [tab, setTab] = useState<'stories' | 'balgeet'>('stories');
   const [activeStory, setActiveStory] = useState<StoryItem | null>(null);
   const [storyVideos, setStoryVideos] = useState<StoryVideoState>({});
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const [lightboxAlt, setLightboxAlt] = useState<string>('');
   const [sectionIndex, setSectionIndex] = useState<number | null>(null);
+  const [showStoryQuiz, setShowStoryQuiz] = useState(false);
+  const [singAlongSong, setSingAlongSong] = useState<Balgeet | null>(null);
   const videoUrlsRef = useRef<string[]>([]);
   const { speak, currentlyPlaying, ttsLoading } = useSpeak();
 
@@ -410,15 +415,27 @@ export function StoriesSection({ storiesRead, onStoryRead }: Props) {
           </div>
         )}
 
-        <button
-          type="button"
-          disabled={storyIsRead}
-          onClick={() => onStoryRead(activeStory.id)}
-          className="mt-4 w-full rounded-2xl px-4 py-3 text-sm font-black text-white shadow-md transition-all active:scale-[0.98] disabled:opacity-80"
-          style={{ background: storyIsRead ? 'var(--emerald-500)' : 'var(--gradient-saffron)' }}
-        >
-          {storyIsRead ? '✓ Story added to progress' : 'Mark story read'}
-        </button>
+        <div className="mt-4 flex gap-2">
+          <button
+            type="button"
+            disabled={storyIsRead}
+            onClick={() => onStoryRead(activeStory.id)}
+            className="flex-1 rounded-2xl px-4 py-3 text-sm font-black text-white shadow-md transition-all active:scale-[0.98] disabled:opacity-80"
+            style={{ background: storyIsRead ? 'var(--emerald-500)' : 'var(--gradient-saffron)' }}
+          >
+            {storyIsRead ? '✓ Story added to progress' : 'Mark story read'}
+          </button>
+          {(activeStory.focusWords?.length ?? 0) >= 2 && (
+            <button
+              type="button"
+              onClick={() => setShowStoryQuiz(true)}
+              className="flex-1 rounded-2xl px-4 py-3 text-sm font-black text-white shadow-md transition-all active:scale-[0.98]"
+              style={{ background: 'var(--rf-indigo)' }}
+            >
+              🧠 Take Quiz
+            </button>
+          )}
+        </div>
 
         {lightboxSrc && <ImageLightbox src={lightboxSrc} alt={lightboxAlt} onClose={() => setLightboxSrc(null)} />}
 
@@ -431,6 +448,14 @@ export function StoriesSection({ storiesRead, onStoryRead }: Props) {
             speak={speak}
             currentlyPlaying={currentlyPlaying}
             ttsLoading={ttsLoading}
+          />
+        )}
+
+        {showStoryQuiz && (
+          <StoryQuiz
+            story={activeStory}
+            onClose={() => setShowStoryQuiz(false)}
+            onComplete={onQuizComplete}
           />
         )}
       </div>
@@ -537,19 +562,32 @@ export function StoriesSection({ storiesRead, onStoryRead }: Props) {
                   ))}
                 </div>
               </div>
-              <button
-                onClick={() => speak(song.titleGujarati + " " + song.lines.map(l => l.gujarati).join(" "), `balgeet-${i}`)}
-                className="speak-btn w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                style={{ background: 'var(--rf-cream)' }}
-              >
-                <SpeakIcon id={`balgeet-${i}`} currentlyPlaying={currentlyPlaying} ttsLoading={ttsLoading} />
-              </button>
+              <div className="flex flex-col gap-2 flex-shrink-0">
+                <button
+                  onClick={() => speak(song.titleGujarati + " " + song.lines.map(l => l.gujarati).join(" "), `balgeet-${i}`)}
+                  className="speak-btn w-10 h-10 rounded-full flex items-center justify-center"
+                  style={{ background: 'var(--rf-cream)' }}
+                  aria-label="Play whole song"
+                >
+                  <SpeakIcon id={`balgeet-${i}`} currentlyPlaying={currentlyPlaying} ttsLoading={ttsLoading} />
+                </button>
+                <button
+                  onClick={() => setSingAlongSong(song)}
+                  className="w-10 h-10 rounded-full flex items-center justify-center text-white"
+                  style={{ background: 'var(--rf-saffron)' }}
+                  aria-label="Sing along"
+                >
+                  🎵
+                </button>
+              </div>
             </div>
           ))
         )}
       </div>
 
       {lightboxSrc && <ImageLightbox src={lightboxSrc} alt={lightboxAlt} onClose={() => setLightboxSrc(null)} />}
+
+      {singAlongSong && <SingAlong song={singAlongSong} onClose={() => setSingAlongSong(null)} />}
     </div>
   );
 }

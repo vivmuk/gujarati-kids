@@ -1577,3 +1577,35 @@ export function generateQuiz(type: 'letter' | 'word' | 'phrase', level: number, 
 
   return questions;
 }
+
+// ===== STORY COMPREHENSION QUIZ GENERATOR =====
+export function generateStoryQuiz(story: StoryItem, count: number = 3) {
+  const questions: Array<{ question: string; options: string[]; answer: number; gujarati: string }> = [];
+  const pool = story.focusWords || [];
+  if (pool.length === 0) return questions;
+
+  const usedGujarati = new Set(pool.map(w => w.gujarati));
+  const otherFocusWords = stories
+    .filter(s => s.id !== story.id)
+    .flatMap(s => s.focusWords || [])
+    .filter(w => !usedGujarati.has(w.gujarati));
+  const distractorPool = [...otherFocusWords, ...words.filter(w => !usedGujarati.has(w.gujarati))];
+
+  const shuffled = [...pool].sort(() => Math.random() - 0.5).slice(0, count);
+  for (const focusWord of shuffled) {
+    const wrongOptions = distractorPool
+      .filter(w => w.english !== focusWord.english)
+      .sort(() => Math.random() - 0.5)
+      .slice(0, 3)
+      .map(w => w.english);
+    const options = [...wrongOptions, focusWord.english].sort(() => Math.random() - 0.5);
+    questions.push({
+      question: `What does "${focusWord.gujarati}" mean?`,
+      options,
+      answer: options.indexOf(focusWord.english),
+      gujarati: focusWord.gujarati,
+    });
+  }
+
+  return questions;
+}

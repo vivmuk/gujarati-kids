@@ -8,7 +8,7 @@ export function useSpeak() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const progressTimerRef = useRef<number | null>(null);
 
-  const speak = useCallback(async (textOrPath: string, id: string, fallbackText?: string) => {
+  const speak = useCallback(async (textOrPath: string, id: string, fallbackText?: string, onEnded?: () => void) => {
     // Toggle off if already playing this item
     if (currentlyPlaying === id) {
       audioRef.current?.pause();
@@ -64,6 +64,7 @@ export function useSpeak() {
         audio.onended = () => {
           setCurrentlyPlaying(null);
           URL.revokeObjectURL(url);
+          onEnded?.();
         };
         audio.onerror = () => {
           setCurrentlyPlaying(null);
@@ -88,7 +89,10 @@ export function useSpeak() {
       try {
         const audio = new Audio(textOrPath);
         audioRef.current = audio;
-        audio.onended = () => setCurrentlyPlaying(null);
+        audio.onended = () => {
+          setCurrentlyPlaying(null);
+          onEnded?.();
+        };
         audio.onerror = () => {
           audioRef.current = null;
           if (fallbackText) void playTts(fallbackText);

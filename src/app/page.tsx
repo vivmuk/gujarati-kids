@@ -485,7 +485,13 @@ export default function GujaratiApp() {
       case 'phrases':
         return <PhrasesSection phrasesLearned={progress.phrasesLearned} onPhraseLearned={markPhraseLearned} />;
       case 'stories':
-        return <StoriesSection storiesRead={progress.storiesRead} onStoryRead={markStoryRead} />;
+        return (
+          <StoriesSection
+            storiesRead={progress.storiesRead}
+            onStoryRead={markStoryRead}
+            onQuizComplete={(s, t) => setProgress(p => ({ ...p, quizScore: p.quizScore + s, quizTotal: p.quizTotal + t }))}
+          />
+        );
       case 'quiz':
         return <QuizSection onQuizComplete={(s, t) => setProgress(p => ({ ...p, quizScore: p.quizScore + s, quizTotal: p.quizTotal + t }))} />;
       case 'chat':
