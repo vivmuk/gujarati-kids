@@ -1,9 +1,11 @@
 'use client';
+
 import { useState } from 'react';
-import { swar, vyanjan, words, phrases, stories } from '@/data/gujarati';
-import { HalftoneOverlay } from './RisoFolk';
-import { GujaratMap } from './GujaratMap';
-import { getBeltForPercentage, updateStreak, type StreakData } from '@/lib/streaks';
+import { phrases, stories, swar, vyanjan, words } from '@/data/gujarati';
+import { days, getBeltForPercentage, updateStreak, type StreakData } from '@/lib/streaks';
+import { Icon, type IconName } from './Icon';
+import { Meter, SectionHeader } from './ui';
+import { GujaratMap, type MapCity } from './GujaratMap';
 
 interface ProgressState {
   lettersLearned: string[];
@@ -14,14 +16,14 @@ interface ProgressState {
   storiesRead: string[];
 }
 
-// x/y are percentage coordinates on the GujaratMap silhouette (see GujaratMap.tsx)
-const GUJARAT_MAP = [
-  { id: 'ahmedabad', name: 'Ahmedabad', gujarati: 'અમદાવાદ', icon: '🏙️', req: 0, desc: 'Starting point! Sabarmati Ashram.', x: 70, y: 14 },
-  { id: 'vadodara', name: 'Vadodara', gujarati: 'વડોદરા', icon: '🏛️', req: 20, desc: 'Cultural capital & Garba.', x: 68, y: 34 },
-  { id: 'rajkot', name: 'Rajkot', gujarati: 'રાજકોટ', icon: '🎨', req: 40, desc: 'Colors of Saurashtra.', x: 32, y: 42 },
-  { id: 'kutch', name: 'Kutch', gujarati: 'કચ્છ', icon: '🏜️', req: 60, desc: 'White Desert & Rann Utsav.', x: 24, y: 14 },
-  { id: 'gir', name: 'Gir Forest', gujarati: 'ગીર જંગલ', icon: '🦁', req: 80, desc: 'Home of the Asiatic Lion!', x: 38, y: 60 },
-  { id: 'surat', name: 'Surat', gujarati: 'સુરત', icon: '💎', req: 100, desc: 'Final stop! Diamond city & delicious Locho!', x: 70, y: 78 },
+/** x/y are percentages on the GujaratMap silhouette. */
+const GUJARAT_MAP: MapCity[] = [
+  { id: 'ahmedabad', name: 'Ahmedabad', gujarati: 'અમદાવાદ', icon: 'home', req: 0, desc: 'Where the journey starts — the Sabarmati Ashram.', x: 70, y: 17 },
+  { id: 'vadodara', name: 'Vadodara', gujarati: 'વડોદરા', icon: 'music', req: 20, desc: 'The cultural capital, and the home of Garba.', x: 70, y: 38 },
+  { id: 'rajkot', name: 'Rajkot', gujarati: 'રાજકોટ', icon: 'palette', req: 40, desc: 'The colours of Saurashtra.', x: 32, y: 41 },
+  { id: 'kutch', name: 'Kutch', gujarati: 'કચ્છ', icon: 'sun', req: 60, desc: 'The White Desert and the Rann Utsav.', x: 26, y: 14 },
+  { id: 'gir', name: 'Gir Forest', gujarati: 'ગીર જંગલ', icon: 'paw', req: 80, desc: 'Home of the Asiatic lion.', x: 34, y: 58 },
+  { id: 'surat', name: 'Surat', gujarati: 'સુરત', icon: 'gem', req: 100, desc: 'The last stop — diamonds, and a plate of locho.', x: 71, y: 74 },
 ];
 
 export function SettingsSection({ progress }: { progress: ProgressState }) {
@@ -32,96 +34,196 @@ export function SettingsSection({ progress }: { progress: ProgressState }) {
   );
   const [showDetails, setShowDetails] = useState(false);
 
-  const totalLetters = swar.length + vyanjan.length;
-  const totalWords = words.length;
-  const totalPhrases = phrases.length;
-  const totalStories = stories.length;
+  const totals = {
+    letters: swar.length + vyanjan.length,
+    words: words.length,
+    phrases: phrases.length,
+    stories: stories.length,
+  };
 
-  const letterPct = Math.round((progress.lettersLearned.length / totalLetters) * 100);
-  const wordPct = Math.round((progress.wordsLearned.length / totalWords) * 100);
-  const phrasePct = Math.round((progress.phrasesLearned.length / totalPhrases) * 100);
-  const storyPct = Math.round((progress.storiesRead.length / totalStories) * 100);
-  const quizPct = progress.quizTotal > 0 ? Math.round((progress.quizScore / progress.quizTotal) * 100) : 0;
-
-  const items = [
-    { label: 'Letters', emoji: '🔤', pct: letterPct, count: progress.lettersLearned.length, total: totalLetters, color: '#3B82F6' },
-    { label: 'Words', emoji: '📚', pct: wordPct, count: progress.wordsLearned.length, total: totalWords, color: '#F59E0B' },
-    { label: 'Phrases', emoji: '💬', pct: phrasePct, count: progress.phrasesLearned.length, total: totalPhrases, color: '#10B981' },
-    { label: 'Stories', emoji: '📖', pct: storyPct, count: progress.storiesRead.length, total: totalStories, color: '#8B5CF6' },
-    { label: 'Quiz', emoji: '🎯', pct: quizPct, count: progress.quizScore, total: progress.quizTotal, color: '#EF4444' },
+  const items: Array<{ label: string; icon: IconName; pct: number; count: number; total: number; ink: string }> = [
+    {
+      label: 'Letters',
+      icon: 'letters',
+      count: progress.lettersLearned.length,
+      total: totals.letters,
+      pct: Math.round((progress.lettersLearned.length / totals.letters) * 100),
+      ink: 'var(--ink-indigo)',
+    },
+    {
+      label: 'Words',
+      icon: 'words',
+      count: progress.wordsLearned.length,
+      total: totals.words,
+      pct: Math.round((progress.wordsLearned.length / totals.words) * 100),
+      ink: 'var(--ink-saffron)',
+    },
+    {
+      label: 'Phrases',
+      icon: 'phrases',
+      count: progress.phrasesLearned.length,
+      total: totals.phrases,
+      pct: Math.round((progress.phrasesLearned.length / totals.phrases) * 100),
+      ink: 'var(--ink-leaf)',
+    },
+    {
+      label: 'Stories',
+      icon: 'stories',
+      count: progress.storiesRead.length,
+      total: totals.stories,
+      pct: Math.round((progress.storiesRead.length / totals.stories) * 100),
+      ink: 'var(--ink-pink)',
+    },
+    {
+      label: 'Quiz',
+      icon: 'quiz',
+      count: progress.quizScore,
+      total: progress.quizTotal,
+      pct: progress.quizTotal > 0 ? Math.round((progress.quizScore / progress.quizTotal) * 100) : 0,
+      ink: 'var(--ink-saffron-deep)',
+    },
   ];
 
-  const overall = items.reduce((s, i) => s + i.pct, 0) / items.length;
+  const overall = items.reduce((sum, item) => sum + item.pct, 0) / items.length;
   const belt = getBeltForPercentage(overall);
+  const stage: IconName = overall < 20 ? 'sprout' : overall < 50 ? 'leaf' : overall < 80 ? 'star' : 'trophy';
 
   return (
-    <div className="px-4 pt-4 pb-6 animate-fade-in">
-      {/* Header */}
-      <div className="relative rounded-2xl overflow-hidden mb-4" style={{ background: 'var(--rf-indigo)', border: 'var(--rf-border)', boxShadow: 'var(--rf-shadow-saffron)' }}>
-        <HalftoneOverlay alpha={0.1} size={7} />
-        <div className="relative flex items-center gap-3 p-4 text-white">
-          <img src="/images/progress.webp" alt="" className="w-14 h-14 rounded-xl object-contain border-2 border-white/30" />
-          <div>
-            <p className="font-bold text-lg">Settings</p>
-            <p className="text-white/70 text-sm">Your progress & app preferences</p>
-          </div>
-        </div>
-      </div>
+    <div className="rf-grid" style={{ gap: 'var(--s-4)' }}>
+      <SectionHeader icon="progress" title="Your progress" gujarati="તમારી પ્રગતિ" />
 
-      {/* Streak Banner */}
-      <div className="rf-card p-3 mb-4 flex items-center justify-between" style={{ boxShadow: 'var(--rf-shadow-saffron)', border: '2px solid var(--rf-saffron)' }}>
-        <div className="flex items-center gap-2">
-          <span className="text-2xl animate-pulse">🔥</span>
-          <div>
-            <p className="font-black text-sm text-orange-600">Day {streak.currentStreak} Streak!</p>
-            <p className="text-[10px] text-gray-500 font-bold uppercase">Best: {streak.bestStreak} days</p>
-          </div>
-        </div>
-        <div className="text-right">
-          <p className="text-xs font-bold text-gray-500">Keep learning daily</p>
-        </div>
-      </div>
-
-      {/* Level badge */}
-      <div className="rf-card p-5 text-center mb-4" style={{ boxShadow: 'var(--rf-shadow-indigo)' }}>
-        <div className="mb-2">
-          <span className={`inline-block px-4 py-1.5 rounded-full font-black text-sm tracking-wide shadow-sm ${belt.color}`}>
-            {belt.name}
+      {/* Streak + belt, side by side once there is room */}
+      <div className="rf-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+        <div
+          className="rf-surface rf-lift-saffron flex items-center"
+          style={{ gap: 'var(--s-3)', padding: 'var(--s-4)' }}
+        >
+          <span
+            className="inline-flex items-center justify-center rounded-full"
+            style={{
+              width: 48,
+              height: 48,
+              flex: 'none',
+              background: 'var(--ink-saffron)',
+              color: 'var(--text-on-ink)',
+              border: 'var(--key-thin)',
+            }}
+          >
+            <Icon name="flame" size={26} />
           </span>
+          <div className="min-w-0">
+            <p style={{ fontSize: 'var(--t-lg)', fontWeight: 800, color: 'var(--ink-saffron-deep)' }}>
+              Day {streak.currentStreak}
+            </p>
+            <p className="rf-label">Best run: {days(streak.bestStreak)}</p>
+          </div>
         </div>
-        <p className="text-3xl mb-1">{overall < 20 ? '🌱' : overall < 50 ? '🌿' : overall < 80 ? '🌳' : '🏆'}</p>
-        <p className="text-sm text-gray-500 font-bold mt-2">{Math.round(overall)}% to next belt!</p>
+
+        <div
+          className="rf-surface rf-lift-indigo flex items-center"
+          style={{ gap: 'var(--s-3)', padding: 'var(--s-4)' }}
+        >
+          <span
+            className="inline-flex items-center justify-center rounded-full"
+            style={{
+              width: 48,
+              height: 48,
+              flex: 'none',
+              background: 'var(--ink-indigo)',
+              color: 'var(--text-on-ink)',
+              border: 'var(--key-thin)',
+            }}
+          >
+            <Icon name={stage} size={26} />
+          </span>
+          <div className="min-w-0">
+            <p className="truncate" style={{ fontSize: 'var(--t-md)', fontWeight: 700 }}>
+              {belt.name}
+            </p>
+            <p className="rf-label">{Math.round(overall)}% overall</p>
+          </div>
+        </div>
       </div>
 
-      {/* Map Unlock System */}
-      <div className="mb-6">
-        <h3 className="font-black text-xl mb-4 text-center" style={{ color: 'var(--rf-indigo)' }}>Gujarat Journey</h3>
-        <GujaratMap cities={GUJARAT_MAP} overall={overall} />
+      <div className="rf-surface" style={{ padding: 'var(--s-4)' }}>
+        <Meter
+          value={Math.round(overall)}
+          max={100}
+          label={`${Math.round(overall)} percent overall progress`}
+        />
       </div>
 
-      <button
-        onClick={() => setShowDetails(!showDetails)}
-        className="w-full py-3 rounded-2xl bg-gray-100 font-bold text-gray-600 mb-4 transition-colors hover:bg-gray-200"
+      {/* Journey across Gujarat */}
+      <section>
+        <h2 style={{ fontSize: 'var(--t-lg)', fontWeight: 700, marginBottom: 'var(--s-3)' }}>
+          Journey across Gujarat
+        </h2>
+        <div style={{ maxWidth: 460 }}>
+          <GujaratMap cities={GUJARAT_MAP} overall={overall} />
+        </div>
+      </section>
+
+      {/* Detail */}
+      <section>
+        <button
+          type="button"
+          onClick={() => setShowDetails(value => !value)}
+          aria-expanded={showDetails}
+          className="rf-btn rf-btn--paper rf-btn--block"
+        >
+          <Icon
+            name="chevronDown"
+            size={18}
+            style={{
+              transform: showDetails ? 'rotate(180deg)' : 'none',
+              transition: 'transform var(--dur-2) var(--ease)',
+            }}
+          />
+          {showDetails ? 'Hide the details' : 'See every count'}
+        </button>
+
+        {showDetails && (
+          <div className="rf-grid rf-rise" style={{ marginTop: 'var(--s-3)', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
+            {items.map(item => (
+              <div key={item.label} className="rf-surface" style={{ padding: 'var(--s-3)' }}>
+                <div
+                  className="flex items-center justify-between"
+                  style={{ gap: 'var(--s-2)', marginBottom: 'var(--s-2)' }}
+                >
+                  <span
+                    className="flex items-center"
+                    style={{ gap: 'var(--s-2)', fontSize: 'var(--t-sm)', fontWeight: 700 }}
+                  >
+                    <Icon name={item.icon} size={17} style={{ color: item.ink }} />
+                    {item.label}
+                  </span>
+                  <span
+                    className="tabular-nums"
+                    style={{ fontSize: 'var(--t-xs)', fontWeight: 600, color: 'var(--text-2)' }}
+                  >
+                    {item.count}
+                    {item.total > 0 ? ` / ${item.total}` : ''}
+                  </span>
+                </div>
+                <Meter
+                  value={item.count}
+                  max={item.total || 1}
+                  ink={item.ink}
+                  label={`${item.label}: ${item.count} of ${item.total}`}
+                />
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <p
+        className="rf-surface--sunk flex items-start"
+        style={{ gap: 'var(--s-2)', padding: 'var(--s-3)', fontSize: 'var(--t-xs)', color: 'var(--text-2)' }}
       >
-        {showDetails ? 'Hide Detailed Stats' : 'Show Detailed Stats'}
-      </button>
-
-      {/* Progress bars */}
-      {showDetails && (
-        <div className="space-y-3 animate-fade-in">
-          {items.map(item => (
-            <div key={item.label} className="rf-card p-3" style={{ boxShadow: 'var(--rf-shadow-saffron)' }}>
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="font-bold text-sm">{item.emoji} {item.label}</span>
-                <span className="text-xs text-gray-500">{item.count}/{item.total}</span>
-              </div>
-              <div className="w-full bg-gray-100 rounded-full h-2.5">
-                <div className="h-2.5 rounded-full transition-all duration-500" style={{ width: `${item.pct}%`, background: item.color }} />
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+        <Icon name="pin" size={16} style={{ flex: 'none', marginTop: 1 }} />
+        Progress is saved on this device only — there is no account and nothing is uploaded.
+      </p>
     </div>
   );
 }

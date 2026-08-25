@@ -5,6 +5,9 @@ export function useSpeak() {
   const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null);
   const [ttsLoading, setTtsLoading] = useState(false);
   const [ttsProgress, setTtsProgress] = useState(0);
+  // Which clip refused to play. Audio is the product, so a failure has to be
+  // visible on the control the child just tapped rather than only in console.
+  const [failedId, setFailedId] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const progressTimerRef = useRef<number | null>(null);
 
@@ -23,6 +26,7 @@ export function useSpeak() {
     }
 
     setCurrentlyPlaying(id);
+    setFailedId(null);
 
     // Check if this is a pre-generated audio path (starts with /audio/)
     const isPreGenerated = textOrPath.startsWith('/audio/');
@@ -74,6 +78,7 @@ export function useSpeak() {
       } catch (err) {
         console.error('TTS error:', err);
         setCurrentlyPlaying(null);
+        setFailedId(id);
       } finally {
         if (progressTimerRef.current) {
           window.clearInterval(progressTimerRef.current);
@@ -96,12 +101,18 @@ export function useSpeak() {
         audio.onerror = () => {
           audioRef.current = null;
           if (fallbackText) void playTts(fallbackText);
-          else setCurrentlyPlaying(null);
+          else {
+            setCurrentlyPlaying(null);
+            setFailedId(id);
+          }
         };
         await audio.play();
       } catch {
         if (fallbackText) await playTts(fallbackText);
-        else setCurrentlyPlaying(null);
+        else {
+          setCurrentlyPlaying(null);
+          setFailedId(id);
+        }
       }
     } else {
       // Fall back to TTS API for dynamic text (e.g., chat messages)
@@ -109,5 +120,5 @@ export function useSpeak() {
     }
   }, [currentlyPlaying]);
 
-  return { speak, currentlyPlaying, ttsLoading, ttsProgress };
+  return { speak, currentlyPlaying, ttsLoading, ttsProgress, failedId };
 }

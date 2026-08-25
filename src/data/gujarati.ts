@@ -69,10 +69,10 @@ export const vyanjan: LetterItem[] = [
   { gujarati: 'જ', roman: 'ja', example: 'જળ', exampleRoman: 'jal', exampleEnglish: 'water', category: 'vyanjan', level: 1 },
   { gujarati: 'ઝ', roman: 'jha', example: 'ઝાડ', exampleRoman: 'jhad', exampleEnglish: 'tree', category: 'vyanjan', level: 2 },
   { gujarati: 'ટ', roman: 'ṭa', example: 'ટમેટા', exampleRoman: 'tameta', exampleEnglish: 'tomato', category: 'vyanjan', level: 1 },
-  { gujarati: 'ઠ', roman: 'tha', example: 'ઠંડા', exampleRoman: 'thanda', exampleEnglish: 'cold', category: 'vyanjan', level: 2 },
-  { gujarati: 'ડ', roman: 'da', example: 'ડુક્કર', exampleRoman: 'dukkar', exampleEnglish: 'pig', category: 'vyanjan', level: 1 },
-  { gujarati: 'ઢ', roman: 'dha', example: 'ઢોલ', exampleRoman: 'dhol', exampleEnglish: 'drum', category: 'vyanjan', level: 2 },
-  { gujarati: 'ણ', roman: 'na', example: 'ણગણ', exampleRoman: 'nagan', exampleEnglish: 'count', category: 'vyanjan', level: 2 },
+  { gujarati: 'ઠ', roman: 'ṭha', example: 'ઠંડા', exampleRoman: 'thanda', exampleEnglish: 'cold', category: 'vyanjan', level: 2 },
+  { gujarati: 'ડ', roman: 'ḍa', example: 'ડુક્કર', exampleRoman: 'dukkar', exampleEnglish: 'pig', category: 'vyanjan', level: 1 },
+  { gujarati: 'ઢ', roman: 'ḍha', example: 'ઢોલ', exampleRoman: 'dhol', exampleEnglish: 'drum', category: 'vyanjan', level: 2 },
+  { gujarati: 'ણ', roman: 'ṇa', example: 'ણગણ', exampleRoman: 'nagan', exampleEnglish: 'count', category: 'vyanjan', level: 2 },
   { gujarati: 'ત', roman: 'ta', example: 'તારા', exampleRoman: 'tara', exampleEnglish: 'stars', category: 'vyanjan', level: 1 },
   { gujarati: 'થ', roman: 'tha', example: 'થાળી', exampleRoman: 'thali', exampleEnglish: 'plate', category: 'vyanjan', level: 2 },
   { gujarati: 'દ', roman: 'da', example: 'દરિયો', exampleRoman: 'dariyo', exampleEnglish: 'sea', category: 'vyanjan', level: 2 },
@@ -88,10 +88,10 @@ export const vyanjan: LetterItem[] = [
   { gujarati: 'લ', roman: 'la', example: 'લીમડો', exampleRoman: 'limdo', exampleEnglish: 'neem tree', category: 'vyanjan', level: 2 },
   { gujarati: 'વ', roman: 'va', example: 'વાંસ', exampleRoman: 'vaans', exampleEnglish: 'bamboo', category: 'vyanjan', level: 2 },
   { gujarati: 'શ', roman: 'sha', example: 'શહેર', exampleRoman: 'shaher', exampleEnglish: 'city', category: 'vyanjan', level: 2 },
-  { gujarati: 'ષ', roman: 'sha', example: 'ષટકોણ', exampleRoman: 'shatkon', exampleEnglish: 'hexagon', category: 'vyanjan', level: 3 },
+  { gujarati: 'ષ', roman: 'ṣa', example: 'ષટકોણ', exampleRoman: 'shatkon', exampleEnglish: 'hexagon', category: 'vyanjan', level: 3 },
   { gujarati: 'સ', roman: 'sa', example: 'સવાર', exampleRoman: 'savar', exampleEnglish: 'morning', category: 'vyanjan', level: 1 },
   { gujarati: 'હ', roman: 'ha', example: 'હાથી', exampleRoman: 'hathi', exampleEnglish: 'elephant', category: 'vyanjan', level: 1 },
-  { gujarati: 'ળ', roman: 'la', example: 'ળવવું', exampleRoman: 'lavvu', exampleEnglish: 'to take', category: 'vyanjan', level: 3 },
+  { gujarati: 'ળ', roman: 'ḷa', example: 'ળવવું', exampleRoman: 'lavvu', exampleEnglish: 'to take', category: 'vyanjan', level: 3 },
   { gujarati: 'ક્ષ', roman: 'ksha', example: 'ક્ષમા', exampleRoman: 'kshama', exampleEnglish: 'forgiveness', category: 'vyanjan', level: 3 },
   { gujarati: 'જ્ઞ', roman: 'jna', example: 'જ્ઞાન', exampleRoman: 'jnan', exampleEnglish: 'knowledge', category: 'vyanjan', level: 3 },
 ];
@@ -104,7 +104,7 @@ export const numbers: WordItem[] = [
   { gujarati: '૩', roman: 'tran', english: 'Three', category: 'number', level: 1 },
   { gujarati: '૪', roman: 'char', english: 'Four', category: 'number', level: 1 },
   { gujarati: '૫', roman: 'paanch', english: 'Five', category: 'number', level: 1 },
-  { gujarati: '૬', roman: 'cha', english: 'Six', category: 'number', level: 2 },
+  { gujarati: '૬', roman: 'chha', english: 'Six', category: 'number', level: 2 },
   { gujarati: '૭', roman: 'saat', english: 'Seven', category: 'number', level: 2 },
   { gujarati: '૮', roman: 'aath', english: 'Eight', category: 'number', level: 2 },
   { gujarati: '૯', roman: 'nav', english: 'Nine', category: 'number', level: 2 },
@@ -112,7 +112,7 @@ export const numbers: WordItem[] = [
 ];
 
 // ===== WORDS =====
-export const words: WordItem[] = [
+const baseWords: WordItem[] = [
   // Animals - Level 1
   { gujarati: 'ગાય', roman: 'gaay', english: 'Cow', category: 'animal', level: 1 },
   { gujarati: 'બિલાડી', roman: 'biladi', english: 'Cat', category: 'animal', level: 1 },
@@ -403,6 +403,10 @@ export const words: WordItem[] = [
   { gujarati: 'ગરબા', roman: 'garbā', english: 'Dance', category: 'festival', level: 2 },
   { gujarati: 'રંગ', roman: 'raṅg', english: 'Color', category: 'festival', level: 1 },
 ];
+
+// Numbers are vocabulary like any other category. They previously lived in
+// their own export that no component read, so the app taught none of them.
+export const words: WordItem[] = [...baseWords, ...numbers];
 
 
 // ===== PHRASES =====
@@ -1495,27 +1499,110 @@ export const balgeet: Balgeet[] = [
       { gujarati: 'સાડી પહેરી ફરવા ગઈ', roman: 'Sadi pehri farva gai', english: 'Wearing a sari she went for a walk' },
       { gujarati: 'તળાવમાં તો તરવા ગઈ', roman: 'Talavma to tarva gai', english: 'She went to swim in the pond' },
     ]
+  },
+  {
+    id: 'mama-nu-ghar',
+    titleGujarati: 'મામાનું ઘર કેટલે',
+    titleEnglish: "Mama nu Ghar Ketle (How Far is Uncle's House)",
+    lines: [
+      { gujarati: 'મામાનું ઘર કેટલે', roman: 'Mama nu ghar ketle', english: "How far is uncle's house?" },
+      { gujarati: 'દીવો બળે એટલે', roman: 'Divo bale etle', english: 'As far as the lamp burns' },
+      { gujarati: 'દીવો મેં તો દીઠો', roman: 'Divo me to ditho', english: 'I saw the lamp' },
+      { gujarati: 'મામો લાગે મીઠો', roman: 'Mamo lage mitho', english: 'Uncle seems so sweet' },
+    ]
+  },
+  {
+    id: 'hathi-bhai',
+    titleGujarati: 'હાથીભાઈ તો જાડા',
+    titleEnglish: 'Hathi Bhai to Jada (Brother Elephant is Fat)',
+    lines: [
+      { gujarati: 'હાથીભાઈ તો જાડા', roman: 'Hathi bhai to jada', english: 'Brother elephant is so fat' },
+      { gujarati: 'લાગે મોટા પાડા', roman: 'Lage mota pada', english: 'He looks like a big buffalo' },
+      { gujarati: 'આગળ ઝૂલે સૂંઢ', roman: 'Aagal jhule sundh', english: 'In front swings his trunk' },
+      { gujarati: 'પાછળ ઝૂલે પૂંછ', roman: 'Pachhal jhule punchh', english: 'Behind swings his tail' },
+    ]
+  },
+  {
+    id: 'aav-re-varsad',
+    titleGujarati: 'આવ રે વરસાદ',
+    titleEnglish: 'Aav re Varsad (Come, O Rain)',
+    lines: [
+      { gujarati: 'આવ રે વરસાદ', roman: 'Aav re varsad', english: 'Come, O rain' },
+      { gujarati: 'ઘેબરિયો પરસાદ', roman: 'Ghebariyo parsad', english: 'Sweet ghebar as an offering' },
+      { gujarati: 'ઊની ઊની રોટલી', roman: 'Uni uni rotli', english: 'Hot, hot rotli' },
+      { gujarati: 'ને કારેલાનું શાક', roman: 'Ne karela nu shaak', english: 'And bitter-gourd curry' },
+    ]
+  },
+  {
+    id: 'varta-re-varta',
+    titleGujarati: 'વારતા રે વારતા',
+    titleEnglish: 'Varta re Varta (Story, O Story)',
+    lines: [
+      { gujarati: 'વારતા રે વારતા', roman: 'Varta re varta', english: 'Story, O story' },
+      { gujarati: 'ભાભો ઢોર ચારતા', roman: 'Bhabho dhor charta', english: 'Grandpa was grazing the cattle' },
+      { gujarati: 'ચપટી બોર લાવતા', roman: 'Chapti bor lavta', english: 'He brought a handful of berries' },
+      { gujarati: 'છોકરાંને સમજાવતા', roman: 'Chhokra ne samjavta', english: 'And explained things to the children' },
+    ]
+  },
+  {
+    id: 'chando-suraj',
+    titleGujarati: 'ચાંદો સૂરજ રમતા હતા',
+    titleEnglish: 'Chando Suraj (The Moon and the Sun)',
+    lines: [
+      { gujarati: 'ચાંદો સૂરજ રમતા હતા', roman: 'Chando suraj ramta hata', english: 'The moon and the sun were playing' },
+      { gujarati: 'રમતાં રમતાં કોડી જડી', roman: 'Ramta ramta kodi jadi', english: 'While playing they found a cowrie shell' },
+      { gujarati: 'કોડીના મેં ચીભડાં લીધાં', roman: 'Kodi na me chibhda lidha', english: 'With the cowrie I bought melons' },
+      { gujarati: 'ચીભડે મને બી કાઢી આપ્યાં', roman: 'Chibhde mane bi kadhi aapya', english: 'The melons gave me their seeds' },
+    ]
+  },
+  {
+    id: 'adko-dadko',
+    titleGujarati: 'અડકો દડકો',
+    titleEnglish: 'Adko Dadko (A Counting Rhyme)',
+    lines: [
+      { gujarati: 'અડકો દડકો', roman: 'Adko dadko', english: 'Adko dadko' },
+      { gujarati: 'દહીં દડૂકો', roman: 'Dahi daduko', english: 'Curd and daduko' },
+      { gujarati: 'કોણે ખાધું?', roman: 'Kone khadhu?', english: 'Who ate it?' },
+      { gujarati: 'ઉંદરે ખાધું', roman: 'Undare khadhu', english: 'The mouse ate it!' },
+    ]
+  },
+  {
+    id: 'tali-pado',
+    titleGujarati: 'તાળી પાડો બાળકો',
+    titleEnglish: 'Tali Pado (Clap Your Hands)',
+    lines: [
+      { gujarati: 'તાળી પાડો બાળકો', roman: 'Tali pado balako', english: 'Clap your hands, children' },
+      { gujarati: 'ગાઓ સૌ મળી ગીત', roman: 'Gao sau mali geet', english: 'Let us all sing a song together' },
+      { gujarati: 'નાચો કૂદો રમો સૌ', roman: 'Nacho kudo ramo sau', english: 'Dance and jump and play, everyone' },
+      { gujarati: 'આજે છે આનંદ', roman: 'Aaje chhe aanand', english: 'Today there is joy' },
+    ]
   }
 ];
 
 // ===== CATEGORY METADATA =====
-export const categoryMeta: Record<string, { emoji: string; label: string; color: string }> = {
-  animal: { emoji: '🦁', label: 'Animals', color: '#F59E0B' },
-  fruit: { emoji: '🍎', label: 'Fruits', color: '#EF4444' },
-  color: { emoji: '🎨', label: 'Colors', color: '#8B5CF6' },
-  body: { emoji: '🤚', label: 'Body Parts', color: '#EC4899' },
-  family: { emoji: '👨‍👩‍👧‍👦', label: 'Family', color: '#F97316' },
-  food: { emoji: '🍛', label: 'Food', color: '#10B981' },
-  nature: { emoji: '🌿', label: 'Nature', color: '#06B6D4' },
-  number: { emoji: '🔢', label: 'Numbers', color: '#3B82F6' },
-  greeting: { emoji: '👋', label: 'Greetings', color: '#F59E0B' },
-  question: { emoji: '❓', label: 'Questions', color: '#6366F1' },
-  daily: { emoji: '☀️', label: 'Daily', color: '#14B8A6' },
-  polite: { emoji: '🙏', label: 'Polite', color: '#A855F7' },
-  emotion: { emoji: '😊', label: 'Emotions', color: '#F43F5E' },
-  swar: { emoji: '🔊', label: 'Vowels (સ્વર)', color: '#3B82F6' },
-  vyanjan: { emoji: '🔤', label: 'Consonants (વ્યંજન)', color: '#8B5CF6' },
-  surat: { emoji: '💎', label: 'Surat City', color: '#6366F1' },
+export const categoryMeta: Record<string, { label: string; gujarati: string; color: string }> = {
+  // Inks are the deep end of this world's palette: each one carries white
+  // label text at >= 4.5:1, so a filled chip is readable rather than pretty.
+  // Words
+  animal:   { label: 'Animals',   gujarati: 'પ્રાણીઓ',  color: '#c8390f' },
+  fruit:    { label: 'Fruits',    gujarati: 'ફળ',      color: '#b02a57' },
+  color:    { label: 'Colors',    gujarati: 'રંગ',      color: '#1d3c6e' },
+  body:     { label: 'Body',      gujarati: 'શરીર',    color: '#8e3260' },
+  family:   { label: 'Family',    gujarati: 'કુટુંબ',    color: '#9c3410' },
+  food:     { label: 'Food',      gujarati: 'ખોરાક',   color: '#1f7a5a' },
+  nature:   { label: 'Nature',    gujarati: 'કુદરત',    color: '#2f6b46' },
+  number:   { label: 'Numbers',   gujarati: 'આંકડા',   color: '#3a5a94' },
+  surat:    { label: 'Surat',     gujarati: 'સુરત',    color: '#12294e' },
+  festival: { label: 'Festivals', gujarati: 'તહેવાર',  color: '#a35c0c' },
+  // Phrases
+  greeting: { label: 'Greetings', gujarati: 'નમસ્તે',   color: '#c8390f' },
+  question: { label: 'Questions', gujarati: 'પ્રશ્નો',   color: '#274b86' },
+  daily:    { label: 'Daily',     gujarati: 'રોજિંદું',   color: '#1a6b4e' },
+  polite:   { label: 'Polite',    gujarati: 'વિવેક',    color: '#8e3260' },
+  emotion:  { label: 'Feelings',  gujarati: 'લાગણી',   color: '#b02a57' },
+  // Letters
+  swar:     { label: 'Vowels',    gujarati: 'સ્વર',     color: '#1d3c6e' },
+  vyanjan:  { label: 'Consonants', gujarati: 'વ્યંજન',  color: '#c8390f' },
 };
 
 // ===== QUIZ QUESTIONS GENERATOR =====

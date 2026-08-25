@@ -155,37 +155,65 @@ Every audio file, image file, and asset lookup uses the same slug scheme so they
 
 **Phrase slug rule:** lower-case the roman, replace runs of non-alphanumeric with `-`, trim leading/trailing `-`. Example: `marun naam ___ chhe` → `marun-naam-chhe`.
 
-### Slug collision caveat
+### Slug collisions — resolved
 
-7 Gujarati letters share a roman slug with another letter:
+Seven Gujarati letters used to share a roman slug with another letter, so only
+one image and one audio file was ever generated for each pair. The other letter
+of the pair silently displayed the wrong picture and played the wrong sound.
 
-| Slug | Letters using it |
-|---|---|
-| `letter-ta` | ટ (tomato) and ત (stars) |
-| `letter-tha` | ઠ (cold) and થ (plate) |
-| `letter-da` | ડ (pig) and દ (sea) |
-| `letter-dha` | ઢ (drum) and ધ (wealth) |
-| `letter-na` | ણ (count) and ન (river) |
-| `letter-la` | લ (neem tree) and ળ (to take) |
-| `letter-sha` | શ (city) and ષ (hexagon) |
+The retroflex letters now carry IAST diacritics in their `roman` field, which
+both fixes the slug and is the more accurate transliteration for a learner:
 
-For each of these, **only one image is generated** (the last-encountered letter wins — typically the `vyanjan` row, which sorts after `swar`). The on-disk count is therefore **141 unique image/audio files** even though the data file has 148 items. If you need both versions, you must change the slug scheme (e.g., include the Gujarati character) — see [§ 10](#10-adding-new-data).
+| Letter | Was | Now | Example |
+|---|---|---|---|
+| ટ | `ta` | `ṭa` | ટમેટા, tomato |
+| ઠ | `tha` | `ṭha` | ઠંડા, cold |
+| ડ | `da` | `ḍa` | ડુક્કર, pig |
+| ઢ | `dha` | `ḍha` | ઢોલ, drum |
+| ણ | `na` | `ṇa` | ણગણ, count |
+| ષ | `sha` | `ṣa` | ષટકોણ, hexagon |
+| ળ | `la` | `ḷa` | ળવવું, to take |
+
+The dental row keeps its plain slugs (ત `ta`, થ `tha`, દ `da`, ધ `dha`,
+ન `na`, શ `sha`, લ `la`) and its existing files. Every one of the 47 letters
+now has its own image and its own audio.
+
+**If you add a letter, check its `roman` is unique** across `swar` + `vyanjan`
+before generating. `npx tsx scripts/audit-assets.mts` reports any expected slug
+with no file on disk, which is how a collision now surfaces.
+
+### Balgeet slugs
+
+Nursery rhymes follow the story pattern:
+
+| Data | Slug | Audio | Image |
+|---|---|---|---|
+| Song title | `balgeet-{id}-title` | `/audio/balgeet-{id}-title.mp3` | — |
+| Song line | `balgeet-{id}-line{i}` | `/audio/balgeet-{id}-line{i}.mp3` | — |
+| Song hero | `balgeet-{id}` | — | `/images/gen/balgeet-{id}.webp` |
+
+### Category cover art
+
+Each word/phrase category has a hero image at `/images/{category}.webp`, used by
+the section headers. These sit outside `/images/gen/` because they are one per
+category rather than one per item.
 
 ## 8. Adding a new letter, word, phrase, or story
 
 The pregenerate script reads the data from `src/data/gujarati.ts` and re-derives every slug. To add a new item:
 
 1. **Edit `src/data/gujarati.ts`** — append your item to the appropriate array (`swar`, `vyanjan`, `words`, `phrases`, or `stories`). Follow the TypeScript interface at the top of each array.
-2. **Run the pregen script:**
+2. **Run the gap filler.** It imports `src/data/gujarati.ts` directly and only
+   writes files that are missing, so rerunning it is free:
 
    ```bash
-   # Add audio + image for just the new item (faster)
-   npx tsx scripts/pregenerate.cts --audio
-   npx tsx scripts/pregenerate.cts --images
-
-   # Or generate everything (safe; existing files are skipped)
-   npx tsx scripts/pregenerate.cts
+   npx tsx scripts/generate-missing.mts --dry   # report the gaps, generate nothing
+   npx tsx scripts/generate-missing.mts         # fill every gap
+   npx tsx scripts/generate-missing.mts --audio # audio gaps only
    ```
+
+   `scripts/pregenerate.cts` still exists but parses the data file with a regex
+   and does not know about balgeet or category covers. Prefer the script above.
 
 3. **Use the same prompt template** for the new item (see [§ 4](#4-prompt-templates-by-category)). The pregen script applies the correct template automatically based on which array the item lives in.
 
@@ -243,7 +271,11 @@ The `prompts.json` file at the repo root contains the complete machine-readable 
 | AI chat route (with inline illustrations) | `src/app/api/chat/route.ts` |
 | TTS endpoint (dynamic, for chat messages) | `src/app/api/tts/route.ts` |
 | Venice API client wrapper | `src/lib/venice.ts` |
-| Audio pregen (sequential, one-shot) | `scripts/pregenerate.cts` |
+| Asset gap filler (preferred) | `scripts/generate-missing.mts` |
+| Asset audit (what is missing) | `scripts/audit-assets.mts` |
+| Narrated story films | `scripts/make-story-films.mts` |
+| App + PWA icons, OG card | `scripts/make-icons.mts` |
+| Audio pregen (legacy, regex-parsed) | `scripts/pregenerate.cts` |
 | Image pregen (parallel, 4 workers) | `scripts/pregen-images.cts` |
 | Complete prompt audit trail | `prompts.json` |
 | Pre-generated audio files | `public/audio/*.mp3` |

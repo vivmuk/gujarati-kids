@@ -3,7 +3,7 @@
 // Audio: /audio/<slug>.mp3
 // Images: /images/gen/<slug>.webp
 
-import { swar, vyanjan, words, phrases, stories } from './gujarati';
+import { swar, vyanjan, words, phrases, stories, balgeet } from './gujarati';
 
 function phraseSlug(roman: string): string {
   return roman.replace(/[^a-zA-Z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
@@ -33,6 +33,14 @@ for (const story of stories) {
   }
 }
 
+// Balgeet (nursery rhymes) — title and one file per sung line
+for (const song of balgeet) {
+  audioPaths[`balgeet-${song.id}-title`] = `/audio/balgeet-${song.id}-title.mp3`;
+  for (let i = 0; i < song.lines.length; i++) {
+    audioPaths[`balgeet-${song.id}-line${i}`] = `/audio/balgeet-${song.id}-line${i}.mp3`;
+  }
+}
+
 // Image paths
 export const imagePaths: Record<string, string> = {};
 
@@ -55,6 +63,11 @@ for (const story of stories) {
   for (let i = 0; i < story.lines.length; i++) {
     imagePaths[`story-${story.id}-line${i}`] = `/images/gen/story-${story.id}-line${i}.webp`;
   }
+}
+
+// Balgeet hero art
+for (const song of balgeet) {
+  imagePaths[`balgeet-${song.id}`] = `/images/gen/balgeet-${song.id}.webp`;
 }
 
 // Helper: get audio path for a letter
@@ -107,13 +120,39 @@ export function getStoryLineImage(storyId: string, lineIndex: number): string | 
   return imagePaths[`story-${storyId}-line${lineIndex}`];
 }
 
-// Video paths (pre-generated story videos)
-export const videoPaths: Record<string, string> = {};
-for (const story of stories) {
-  videoPaths[`story-${story.id}`] = `/videos/story-${story.id}.mp4`;
+// Helper: get a nursery rhyme's title audio
+export function getBalgeetTitleAudio(songId: string): string | undefined {
+  return audioPaths[`balgeet-${songId}-title`];
 }
 
-// Helper: get pre-generated story video path
+// Helper: get the audio for one sung line
+export function getBalgeetLineAudio(songId: string, lineIndex: number): string | undefined {
+  return audioPaths[`balgeet-${songId}-line${lineIndex}`];
+}
+
+// Helper: get a nursery rhyme's hero illustration
+export function getBalgeetImage(songId: string): string | undefined {
+  return imagePaths[`balgeet-${songId}`];
+}
+
+/* Story films ------------------------------------------------------------
+ * Only some stories have a film. Listing them explicitly means the reader
+ * shows a "make one" button straight away instead of mounting a <video> that
+ * can only 404. Add an id here after running scripts/make-story-films.mts.
+ */
+export const STORY_FILMS = new Set<string>([
+  'dadi-dhokla',
+  'hare-tortoise',
+  'hungry-cat',
+  'kite-wind',
+  'lion-mouse',
+  'sun-moon',
+]);
+
+export function hasStoryVideo(storyId: string): boolean {
+  return STORY_FILMS.has(storyId);
+}
+
 export function getStoryVideo(storyId: string): string {
-  return videoPaths[`story-${storyId}`] || `/videos/story-${storyId}.mp4`;
+  return `/videos/story-${storyId}.mp4`;
 }

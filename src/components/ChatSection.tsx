@@ -1,8 +1,9 @@
 'use client';
-import { useState, useRef, useLayoutEffect, useEffect } from 'react';
+import { useState, useRef, useLayoutEffect, useEffect, type CSSProperties } from 'react';
 import { useSpeak } from './useSpeak';
-import { SpeakIcon } from './SpeakIcon';
-import { Guju, PlayTriangleIcon } from './RisoFolk';
+import { Guju } from './RisoFolk';
+import { Icon, type IconName } from './Icon';
+import { SpeakGlyph } from './ui';
 
 interface ChatMessage {
   id: string;
@@ -26,17 +27,17 @@ interface FollowupPrompt {
 
 // Tappable conversation starters so kids who can't type yet can dive in.
 const CHARACTERS = [
-  { id: 'guju', name: 'Guju', icon: '🙏', color: 'var(--rf-saffron)' },
-  { id: 'nani', name: 'Nani', icon: '👵', color: 'var(--rf-indigo)' },
-  { id: 'tiger', name: 'Vagh', icon: '🐯', color: '#15803d' }, // Green for nature
-];
-const STARTERS = [
-  { label: '🔎 Scavenger Hunt', send: "Let's play a scavenger hunt! Give me something to find in Gujarati!" },
-  { label: '🐄 પ્રાણીઓ શીખવો', send: 'Teach me some animals in Gujarati' },
-  { label: '🔢 Count to 10', send: 'Help me count from 1 to 10 in Gujarati' },
-  { label: '📖 વાર્તા કહો', send: 'Tell me a short fun story in Gujarati' },
-  { label: '🎨 Colors', send: 'Teach me colors in Gujarati' },
-  { label: '🍲 Gujarati food', send: 'Tell me about a famous Gujarati food' },
+  { id: 'guju', name: 'Guju', blurb: 'A friendly bird', icon: 'namaste', color: 'var(--ink-saffron)' },
+  { id: 'nani', name: 'Nani', blurb: 'Your grandmother', icon: 'family', color: 'var(--ink-indigo)' },
+  { id: 'tiger', name: 'Vagh', blurb: 'A jungle tiger', icon: 'paw', color: 'var(--ink-leaf)' },
+] as const;
+const STARTERS: Array<{ label: string; icon: IconName; send: string }> = [
+  { label: 'Scavenger hunt', icon: 'quiz', send: "Let's play a scavenger hunt! Give me something to find in Gujarati!" },
+  { label: 'પ્રાણીઓ · Animals', icon: 'paw', send: 'Teach me some animals in Gujarati' },
+  { label: 'Count to 10', icon: 'numbers', send: 'Help me count from 1 to 10 in Gujarati' },
+  { label: 'વાર્તા · A story', icon: 'stories', send: 'Tell me a short fun story in Gujarati' },
+  { label: 'Colours', icon: 'palette', send: 'Teach me colors in Gujarati' },
+  { label: 'Gujarati food', icon: 'bowl', send: 'Tell me about a famous Gujarati food' },
 ];
 
 const FALLBACK_FOLLOWUPS: Record<number, string[]> = {
@@ -77,15 +78,6 @@ const FALLBACK_FOLLOWUPS: Record<number, string[]> = {
     'Give me a harder mixed quiz on this topic',
   ],
 };
-
-const IMAGE_LOADING_PLACEHOLDER =
-  'data:image/svg+xml;utf8,' +
-  encodeURIComponent(
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
-      <rect width="200" height="200" fill="#fef3c7"/>
-      <text x="50%" y="50%" text-anchor="middle" dy=".3em" font-family="sans-serif" font-size="14" fill="#92400e">🎨 drawing...</text>
-    </svg>`
-  );
 
 let uidCounter = 0;
 const uid = () => `m${Date.now()}-${uidCounter++}`;
@@ -162,15 +154,15 @@ function GujuThinking() {
   return (
     <div className="flex items-center gap-3 py-1" aria-label="Guju is thinking">
       <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white">
-        <span className="absolute inset-0 rounded-full border-2 opacity-40 animate-ping" style={{ borderColor: 'var(--rf-saffron)' }} />
+        <span className="absolute inset-0 rounded-full border-2 opacity-40 rf-blink" style={{ borderColor: 'var(--ink-saffron)' }} />
         <Guju size={28} sw={2.3} />
       </span>
       <span className="flex items-end gap-1">
         {[0, 1, 2].map(i => (
           <span
             key={i}
-            className="h-2 w-2 rounded-full animate-bounce"
-            style={{ background: i % 2 === 0 ? 'var(--rf-saffron)' : 'var(--rf-indigo)', animationDelay: `${i * 120}ms` }}
+            className="rf-think h-2 w-2 rounded-full"
+            style={{ background: i % 2 === 0 ? 'var(--ink-saffron)' : 'var(--ink-indigo)', animationDelay: `${i * 130}ms` }}
           />
         ))}
       </span>
@@ -181,16 +173,17 @@ function GujuThinking() {
 export function ChatSection() {
   const [character, setCharacter] = useState('guju');
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { id: 'greeting', role: 'assistant', content: 'નમસ્તે! 🙏 I\'m ગુજુ (Guju), your Gujarati learning buddy! Ask me anything — words, phrases, grammar, or just chat in Gujarati!' }
+    { id: 'greeting', role: 'assistant', content: 'નમસ્તે! I am ગુજુ (Guju), your Gujarati friend. Ask me anything — a word, a phrase, or just chat with me in Gujarati.' }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [voiceOn, setVoiceOn] = useState(true); // auto-speak Guju's replies
-  const { speak, currentlyPlaying, ttsLoading, ttsProgress } = useSpeak();
+  const { speak, currentlyPlaying, ttsLoading, ttsProgress, failedId } = useSpeak();
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const videoUrlsRef = useRef<string[]>([]);
   const [isRecording, setIsRecording] = useState(false);
+  const [micError, setMicError] = useState<string | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
 
   useEffect(() => {
@@ -288,7 +281,7 @@ export function ChatSection() {
       }
 
       const { visible, imagePrompt, followups } = parseFinal(acc);
-      const finalText = visible || 'Sorry, I couldn\'t understand that. 🙏';
+      const finalText = visible || 'Sorry, I did not understand that. Try asking me another way?';
       const nextPrompts = followups.length
         ? tagFollowupLevels(followups, userTurnCount)
         : randomFollowups(userTurnCount, text);
@@ -322,7 +315,11 @@ export function ChatSection() {
         }
       }
     } catch {
-      patch(botId, { content: 'Oops! Something went wrong. Try again? 🙏', streaming: false, imageLoading: false });
+      patch(botId, {
+        content: 'I could not reach my brain just then. Tap a question below to try again.',
+        streaming: false,
+        imageLoading: false,
+      });
     } finally {
       setIsLoading(false);
     }
@@ -346,15 +343,17 @@ export function ChatSection() {
           if (!res.ok) throw new Error('STT failed');
           const data = await res.json();
           if (data.text?.trim()) setInput(data.text);
+          else setMicError('I did not catch that. Hold the button and speak again.');
         } catch {
-          // silently fail
+          setMicError('I could not understand the recording. Try once more?');
         }
       };
       recorder.start();
       mediaRecorderRef.current = recorder;
+      setMicError(null);
       setIsRecording(true);
     } catch {
-      // mic not available
+      setMicError('I cannot hear the microphone. Ask a grown-up to let me listen.');
     }
   };
 
@@ -367,121 +366,156 @@ export function ChatSection() {
   const showStarters = messages.length <= 1 && !isLoading;
 
   return (
-    <div className="flex flex-col" style={{ height: 'calc(100dvh - 112px)' }}>
-      {/* Header */}
-      <div className="px-4 pt-4 pb-2 flex-shrink-0">
-        <div
-          className="relative overflow-hidden bg-white"
-          style={{ borderRadius: 'var(--rf-radius-card)', border: 'var(--rf-border)', boxShadow: 'var(--rf-shadow-saffron)' }}
+    <div
+      className="flex flex-col"
+      style={{ height: 'var(--chat-h)', minHeight: 420 }}
+    >
+      {/* Who you are talking to */}
+      <div
+        className="rf-surface rf-lift-saffron flex flex-shrink-0 items-center"
+        style={{ gap: 'var(--s-3)', padding: 'var(--s-3)' }}
+      >
+        <span
+          className="inline-flex items-center justify-center"
+          style={{
+            width: 48,
+            height: 48,
+            flex: 'none',
+            borderRadius: 'var(--r-md)',
+            background: 'var(--paper)',
+            border: 'var(--key-thin)',
+            boxShadow: 'var(--lift-1) var(--ink-indigo)',
+          }}
         >
-          <div className="flex items-center gap-3 p-3">
-            <span
-              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white"
-              style={{ border: '2px solid var(--rf-ink)', boxShadow: '3px 3px 0 var(--rf-indigo)' }}
-            >
-              <Guju size={36} sw={2.5} />
-            </span>
-            <div className="flex-1">
-              <p className="font-bold" style={{ color: 'var(--rf-indigo)' }}>Guju</p>
-              <p className="text-xs" style={{ fontFamily: 'var(--font-gujarati)', color: 'var(--rf-muted)' }}>ગુજુ - તમારો ગુજરાતી મિત્ર</p>
-            </div>
-            {/* Auto-speak toggle */}
-            <button
-              onClick={() => setVoiceOn(v => !v)}
-              aria-label={voiceOn ? 'Turn voice off' : 'Turn voice on'}
-              title={voiceOn ? 'Voice on — Guju reads replies aloud' : 'Voice off'}
-              className="w-9 h-9 rounded-full flex items-center justify-center transition-colors"
-              style={{ background: voiceOn ? 'var(--rf-saffron)' : 'var(--rf-cream)', color: voiceOn ? '#fff' : 'var(--rf-ink)', border: '2px solid var(--rf-ink)' }}
-            >
-              {voiceOn ? '🔊' : '🔇'}
-            </button>
-          </div>
+          <Guju size={34} sw={2.5} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p style={{ fontSize: 'var(--t-md)', fontWeight: 700, color: 'var(--ink-indigo)' }}>Guju</p>
+          <p className="rf-gujarati truncate" style={{ fontSize: 'var(--t-xs)', color: 'var(--text-2)' }}>
+            ગુજુ — તમારો ગુજરાતી મિત્ર
+          </p>
         </div>
+        <button
+          type="button"
+          onClick={() => setVoiceOn(v => !v)}
+          aria-label={voiceOn ? 'Turn the voice off' : 'Turn the voice on'}
+          aria-pressed={voiceOn}
+          className="rf-icon-btn"
+        >
+          <Icon name={voiceOn ? 'speakerLoud' : 'speakerOff'} size={19} />
+        </button>
       </div>
 
-      {/* Messages */}
+      {/* Conversation */}
       <div
         ref={messagesContainerRef}
         onScroll={onMessagesScroll}
-        className="flex-1 min-h-0 overflow-y-auto px-4 py-2 space-y-3 chat-scroll"
-        style={{ scrollBehavior: 'smooth', WebkitOverflowScrolling: 'touch' }}
+        className="min-h-0 flex-1 overflow-y-auto"
+        style={{ padding: 'var(--s-3) 0', display: 'grid', gap: 'var(--s-3)', alignContent: 'start' }}
       >
-        {/* Character Selector */}
         {messages.length === 1 && (
-          <div className="flex justify-center gap-4 mb-6">
-            {CHARACTERS.map(c => (
-              <button
-                key={c.id}
-                onClick={() => setCharacter(c.id)}
-                className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all ${character === c.id ? 'bg-white shadow-md scale-110' : 'opacity-70 hover:opacity-100'}`}
-                style={{ border: character === c.id ? `2px solid ${c.color}` : '2px solid transparent' }}
-              >
-                <span className="text-3xl">{c.icon}</span>
-                <span className="text-xs font-bold" style={{ color: c.color }}>{c.name}</span>
-              </button>
-            ))}
-          </div>
+          <fieldset style={{ border: 0, margin: 0, padding: 0 }}>
+            <legend className="rf-label" style={{ marginBottom: 'var(--s-2)' }}>
+              Who should teach you today?
+            </legend>
+            <div className="flex flex-wrap" style={{ gap: 'var(--s-2)' }}>
+              {CHARACTERS.map(person => (
+                <button
+                  key={person.id}
+                  type="button"
+                  onClick={() => setCharacter(person.id)}
+                  aria-pressed={character === person.id}
+                  className="rf-chip"
+                  style={{ '--chip-ink': person.color } as CSSProperties}
+                >
+                  <Icon name={person.icon} size={17} strokeWidth={2.2} />
+                  <span>
+                    {person.name}
+                    <span style={{ fontWeight: 500, opacity: 0.8 }}> · {person.blurb}</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </fieldset>
         )}
 
-        {messages.map((msg) => {
+        {messages.map(msg => {
           const isUser = msg.role === 'user';
           return (
             <div key={msg.id} className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 ${isUser ? 'text-white rounded-br-md' : 'glass-card rounded-bl-md'}`}
-                style={isUser ? { background: 'var(--gradient-saffron)' } : {}}>
+              <div
+                style={{
+                  maxWidth: 'min(88%, 62ch)',
+                  padding: 'var(--s-3) var(--s-4)',
+                  borderRadius: 'var(--r-lg)',
+                  border: 'var(--key-thin)',
+                  background: isUser ? 'var(--ink-saffron-deep)' : 'var(--paper)',
+                  color: isUser ? 'var(--text-on-ink)' : 'var(--text-1)',
+                  borderBottomRightRadius: isUser ? 'var(--s-1)' : undefined,
+                  borderBottomLeftRadius: isUser ? undefined : 'var(--s-1)',
+                  boxShadow: isUser ? 'var(--lift-1) var(--ink-key)' : 'var(--lift-1) var(--ink-indigo)',
+                }}
+              >
                 {!isUser && msg.streaming && !msg.content ? (
                   <GujuThinking />
                 ) : (
-                  <p className="text-sm whitespace-pre-wrap">
+                  <p style={{ fontSize: 'var(--t-sm)', lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>
                     {msg.content}
-                    {msg.streaming && <span className="inline-block w-1.5 h-4 ml-0.5 align-middle rounded-sm animate-pulse" style={{ background: 'var(--rf-saffron)' }} />}
+                    {msg.streaming && (
+                      <span
+                        className="rf-blink"
+                        style={{
+                          display: 'inline-block',
+                          width: 6,
+                          height: 15,
+                          marginLeft: 2,
+                          verticalAlign: 'middle',
+                          background: 'var(--ink-saffron)',
+                        }}
+                      />
+                    )}
                   </p>
                 )}
 
-                {/* Generated Venice illustration, kept fully visible for kids. */}
                 {!isUser && (msg.image || msg.imageLoading) && (
-                  <div
-                    className="mt-2 overflow-hidden rounded-xl bg-white"
-                    style={{ border: '2px solid var(--rf-ink)' }}
-                  >
+                  <div className="rf-art-frame" style={{ marginTop: 'var(--s-2)' }}>
                     {msg.image ? (
                       <img
                         src={imageSrc(msg.image)}
-                        alt="Guju's illustration"
-                        className="h-auto max-h-72 w-full object-contain p-2"
+                        alt={msg.imagePrompt || 'A picture Guju drew'}
+                        className="rf-art w-full"
+                        style={{ maxHeight: 288, padding: 'var(--s-2)' }}
                         loading="lazy"
                       />
                     ) : (
-                      <img
-                        src={IMAGE_LOADING_PLACEHOLDER}
-                        alt="drawing..."
-                        className="h-32 w-full object-contain p-2 animate-pulse"
-                      />
+                      <div
+                        className="rf-skeleton flex items-center justify-center"
+                        style={{ height: 128, gap: 'var(--s-2)', color: 'var(--text-2)' }}
+                      >
+                        <Icon name="image" size={20} />
+                        <span style={{ fontSize: 'var(--t-xs)', fontWeight: 700 }}>Guju is drawing...</span>
+                      </div>
                     )}
                   </div>
                 )}
 
                 {!isUser && msg.image && (
-                  <div className="mt-2">
+                  <div style={{ marginTop: 'var(--s-2)' }}>
                     {!msg.video && (
                       <button
                         type="button"
                         onClick={() => generateVideo(msg)}
                         disabled={msg.videoLoading}
-                        className="inline-flex min-h-9 items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-bold transition-all active:scale-95 disabled:opacity-60"
-                        style={{
-                          background: 'var(--rf-saffron)',
-                          color: '#fff',
-                          border: '2px solid var(--rf-ink)',
-                          boxShadow: '2px 2px 0 var(--rf-ink)',
-                        }}
+                        data-busy={msg.videoLoading ? 'true' : undefined}
+                        className="rf-btn rf-btn--secondary"
+                        style={{ minHeight: 38, fontSize: 'var(--t-xs)' }}
                       >
-                        <PlayTriangleIcon className="h-3.5 w-3.5" />
-                        {msg.videoLoading ? 'Making video...' : 'Make video'}
+                        <Icon name="video" size={15} />
+                        {msg.videoLoading ? 'Making it move...' : 'Make it move'}
                       </button>
                     )}
                     {msg.videoError && (
-                      <p className="mt-1 text-[11px] font-semibold" style={{ color: 'var(--rf-saffron)' }}>
+                      <p role="status" style={{ marginTop: 'var(--s-1)', fontSize: 'var(--t-2xs)', color: 'var(--ink-pink)' }}>
                         {msg.videoError}
                       </p>
                     )}
@@ -490,29 +524,35 @@ export function ChatSection() {
                         src={msg.video}
                         controls
                         playsInline
-                        className="mt-2 max-h-72 w-full rounded-xl bg-white object-contain"
-                        style={{ border: '2px solid var(--rf-ink)' }}
+                        className="rf-art-frame w-full"
+                        style={{ marginTop: 'var(--s-2)', maxHeight: 288 }}
                       />
                     )}
                   </div>
                 )}
 
                 {!isUser && !msg.streaming && msg.followups?.length ? (
-                  <div className="mt-2 flex flex-wrap gap-2" aria-label="Follow-up prompts">
+                  <div
+                    className="flex flex-wrap"
+                    style={{ gap: 'var(--s-2)', marginTop: 'var(--s-3)' }}
+                    aria-label="Things to ask next"
+                  >
                     {msg.followups.map((followup, index) => (
                       <button
                         key={`${msg.id}-followup-${index}`}
                         type="button"
                         onClick={() => sendMessage(followup.send)}
                         disabled={isLoading}
-                        className="max-w-full rounded-xl px-2.5 py-1.5 text-left text-[11px] font-bold leading-snug transition-all active:scale-95 disabled:opacity-50"
+                        className="rf-chip"
                         style={{
-                          background: 'var(--rf-cream)',
-                          color: 'var(--rf-indigo)',
-                          border: '1px solid rgba(30, 64, 175, 0.22)',
+                          minHeight: 34,
+                          padding: '0 var(--s-3)',
+                          fontSize: 'var(--t-xs)',
+                          whiteSpace: 'normal',
+                          textAlign: 'left',
+                          background: 'var(--paper-sunk)',
                         }}
                       >
-                        <span className="mr-1 opacity-60">L{followup.level}</span>
                         {followup.label}
                       </button>
                     ))}
@@ -520,8 +560,21 @@ export function ChatSection() {
                 ) : null}
 
                 {!isUser && !msg.streaming && msg.content && (
-                  <button onClick={() => speak(msg.content, msg.id)} className="mt-1 text-xs opacity-60 hover:opacity-100 transition-opacity">
-                    <SpeakIcon id={msg.id} currentlyPlaying={currentlyPlaying} ttsLoading={ttsLoading} ttsProgress={ttsProgress} /> Listen
+                  <button
+                    type="button"
+                    onClick={() => speak(msg.content, msg.id)}
+                    className="rf-btn rf-btn--quiet"
+                    style={{ marginTop: 'var(--s-2)', padding: '0 var(--s-2)', fontSize: 'var(--t-xs)' }}
+                  >
+                    <SpeakGlyph
+                      id={msg.id}
+                      currentlyPlaying={currentlyPlaying}
+                      ttsLoading={ttsLoading}
+                      ttsProgress={ttsProgress}
+                      failedId={failedId}
+                      size={16}
+                    />
+                    {failedId === msg.id ? 'That did not play — tap to try again' : 'Read it to me'}
                   </button>
                 )}
               </div>
@@ -531,52 +584,96 @@ export function ChatSection() {
         <div ref={chatEndRef} />
       </div>
 
-      {/* Conversation starters */}
+      {/* Starters */}
       {showStarters && (
-        <div className="px-4 pb-2 flex-shrink-0">
-          <p className="text-[11px] font-bold text-gray-400 mb-1.5">Try asking…</p>
-          <div className="flex flex-wrap gap-2">
-            {STARTERS.map(s => (
+        <div className="flex-shrink-0" style={{ paddingBottom: 'var(--s-2)' }}>
+          <p className="rf-label" style={{ marginBottom: 'var(--s-2)' }}>
+            Try asking
+          </p>
+          <div className="flex flex-wrap" style={{ gap: 'var(--s-2)' }}>
+            {STARTERS.map(starter => (
               <button
-                key={s.label}
-                onClick={() => sendMessage(s.send)}
-                className="text-xs font-semibold px-3 py-1.5 rounded-full bg-white border border-amber-200 text-amber-700 hover:bg-amber-50 active:scale-95 transition-all"
+                key={starter.label}
+                type="button"
+                onClick={() => sendMessage(starter.send)}
+                className="rf-chip"
+                style={{ minHeight: 36, fontSize: 'var(--t-xs)' }}
               >
-                {s.label}
+                <Icon name={starter.icon} size={15} strokeWidth={2.2} />
+                {starter.label}
               </button>
             ))}
           </div>
         </div>
       )}
 
-      {/* Input — flex-shrink-0 keeps it always visible */}
-      <div className="flex-shrink-0 px-4 py-3 border-t border-gray-100 bg-white/80 backdrop-blur-sm">
-        <div className="flex items-center gap-2">
-          <button
-            onPointerDown={startRecording}
-            onPointerUp={stopRecording}
-            onPointerLeave={stopRecording}
-            onPointerCancel={stopRecording}
-            aria-label="Hold to speak"
-            title="Hold to speak"
-            className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-all select-none touch-none ${isRecording ? 'bg-red-500 text-white scale-110 animate-pulse' : 'bg-gray-100 text-gray-600'}`}>
-            {isRecording ? '⏺' : '🎙'}
-          </button>
-          <input
-            type="text"
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && sendMessage()}
-            placeholder={isRecording ? 'Listening… 🎧' : 'Type in English or Gujarati...'}
-            className="flex-1 bg-gray-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300"
-          />
-          <button onClick={() => sendMessage()} disabled={!input.trim() || isLoading}
-            className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-white transition-all disabled:opacity-40"
-            style={{ background: 'var(--gradient-saffron)' }}>
-            ➤
-          </button>
-        </div>
+      {/* Composer */}
+      <div
+        className="flex flex-shrink-0 items-center"
+        style={{ gap: 'var(--s-2)', paddingTop: 'var(--s-3)', borderTop: 'var(--key-thin)' }}
+      >
+        <button
+          type="button"
+          onPointerDown={startRecording}
+          onPointerUp={stopRecording}
+          onPointerLeave={stopRecording}
+          onPointerCancel={stopRecording}
+          aria-label="Hold to speak"
+          className={`rf-icon-btn ${isRecording ? 'rf-listening' : ''}`}
+          style={{
+            background: isRecording ? 'var(--ink-pink)' : 'var(--paper)',
+            color: isRecording ? 'var(--text-on-ink)' : 'var(--ink-indigo)',
+            touchAction: 'none',
+          }}
+        >
+          <Icon name="mic" size={19} />
+        </button>
+
+        <label className="rf-sr" htmlFor="guju-input">
+          Ask Guju something
+        </label>
+        <input
+          id="guju-input"
+          type="text"
+          value={input}
+          onChange={event => setInput(event.target.value)}
+          onKeyDown={event => event.key === 'Enter' && sendMessage()}
+          placeholder={isRecording ? 'Listening...' : 'Type in English or Gujarati...'}
+          className="rf-field"
+          style={{ flex: 1, minWidth: 0 }}
+        />
+
+        <button
+          type="button"
+          onClick={() => sendMessage()}
+          disabled={!input.trim() || isLoading}
+          aria-label="Send"
+          className="rf-icon-btn"
+          style={{
+            background: !input.trim() || isLoading ? 'var(--paper-sunk)' : 'var(--ink-saffron-deep)',
+            color: !input.trim() || isLoading ? 'var(--text-2)' : 'var(--text-on-ink)',
+          }}
+        >
+          <Icon name="send" size={19} />
+        </button>
       </div>
+
+      {micError && (
+        <p
+          role="status"
+          className="flex flex-shrink-0 items-center"
+          style={{
+            gap: 'var(--s-2)',
+            paddingTop: 'var(--s-2)',
+            fontSize: 'var(--t-xs)',
+            fontWeight: 600,
+            color: 'var(--state-alert)',
+          }}
+        >
+          <Icon name="mic" size={14} />
+          {micError}
+        </p>
+      )}
     </div>
   );
 }

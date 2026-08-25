@@ -1,8 +1,16 @@
-import type { CSSProperties, ReactNode } from 'react';
+import type { CSSProperties } from 'react';
 
-const RF_INDIGO = '#1d3c6e';
-const RF_SAFFRON = '#ef5a23';
-const RF_INK = '#241c12';
+/* ============================================================================
+   The two authored marks of this world that are not icons:
+   Guju (the mascot) and the Ajrakh block-print band.
+
+   Everything else — halftone, offset lift, press — lives in globals.css;
+   every glyph lives in Icon.tsx.
+   ========================================================================= */
+
+const INK_INDIGO = '#1d3c6e';
+const INK_SAFFRON = '#ef5a23';
+const INK_KEY = '#241c12';
 
 type GujuSkin = {
   body: string;
@@ -16,14 +24,14 @@ type GujuSkin = {
 };
 
 const DEFAULT_GUJU_SKIN: GujuSkin = {
-  body: RF_SAFFRON,
+  body: INK_SAFFRON,
   belly: '#f6d9a8',
   wing: '#c8390f',
-  beak: RF_INDIGO,
-  crest: RF_INDIGO,
+  beak: INK_INDIGO,
+  crest: INK_INDIGO,
   cheek: '#f7b27e',
-  eye: RF_INK,
-  outline: RF_INK,
+  eye: INK_KEY,
+  outline: INK_KEY,
 };
 
 export function Guju({
@@ -33,6 +41,7 @@ export function Guju({
   sw = 2.4,
   className,
   style,
+  title,
 }: {
   size?: number;
   skin?: Partial<GujuSkin>;
@@ -40,6 +49,7 @@ export function Guju({
   sw?: number;
   className?: string;
   style?: CSSProperties;
+  title?: string;
 }) {
   const c = { ...DEFAULT_GUJU_SKIN, ...skin };
   const fillFor = (color: string) => (ink ? 'none' : color);
@@ -55,8 +65,12 @@ export function Guju({
       stroke={c.outline}
       strokeWidth={sw}
       strokeLinejoin="round"
-      aria-hidden="true"
+      role={title ? 'img' : undefined}
+      aria-label={title}
+      aria-hidden={title ? undefined : true}
+      focusable="false"
     >
+      {title && <title>{title}</title>}
       <polygon points="36,86 22,112 44,96" fill={fillFor(c.wing)} />
       <polygon points="46,90 40,114 58,98" fill={fillFor(c.body)} />
       <ellipse cx="52" cy="70" rx="29" ry="33" fill={fillFor(c.body)} />
@@ -78,8 +92,9 @@ export function Guju({
   );
 }
 
+/** Ajrakh border: the repeating block-print rule that separates zones. */
 export function BlockPrintBand({
-  color = RF_INDIGO,
+  color = INK_INDIGO,
   height = 14,
   opacity = 0.5,
   className = '',
@@ -115,77 +130,26 @@ export function BlockPrintBand({
   );
 }
 
-export function HalftoneOverlay({
-  alpha = 0.14,
-  size = 6,
-  className = '',
-}: {
-  alpha?: number;
-  size?: number;
-  className?: string;
-}) {
+/** Print-shop burst, for the one thing on a screen that is genuinely new. */
+export function Starburst({ children }: { children: React.ReactNode }) {
   return (
     <span
-      aria-hidden="true"
-      className={`pointer-events-none absolute inset-0 ${className}`}
+      className="relative inline-flex shrink-0 rotate-[8deg] items-center justify-center font-black"
       style={{
-        backgroundImage: `radial-gradient(rgba(255,255,255,${alpha}) 22%, transparent 23%)`,
-        backgroundSize: `${size}px ${size}px`,
+        width: 46,
+        height: 46,
+        fontFamily: 'var(--font-ui)',
+        fontSize: 'var(--t-2xs)',
+        letterSpacing: '0.04em',
+        color: 'var(--text-on-ink)',
       }}
-    />
-  );
-}
-
-export function ProgressRing({
-  value,
-  total,
-  label,
-}: {
-  value: number;
-  total: number;
-  label?: string;
-}) {
-  const radius = 15;
-  const circumference = 2 * Math.PI * radius;
-  const ratio = total > 0 ? Math.min(Math.max(value / total, 0), 1) : 0;
-  const offset = circumference * (1 - ratio);
-
-  return (
-    <svg width="40" height="40" viewBox="0 0 40 40" aria-label={label}>
-      <circle cx="20" cy="20" r={radius} fill="none" stroke="rgba(0,0,0,0.08)" strokeWidth="4.5" />
-      <circle
-        cx="20"
-        cy="20"
-        r={radius}
-        fill="none"
-        stroke="var(--rf-saffron)"
-        strokeWidth="4.5"
-        strokeLinecap="round"
-        strokeDasharray={circumference}
-        strokeDashoffset={offset}
-        transform="rotate(-90 20 20)"
-      />
-      <text
-        x="20"
-        y="24"
-        textAnchor="middle"
-        style={{ fontFamily: 'var(--font-display)', fontSize: 11, fontWeight: 700, fill: RF_INK }}
-      >
-        {value}
-      </text>
-    </svg>
-  );
-}
-
-export function Starburst({ children }: { children: ReactNode }) {
-  return (
-    <span
-      className="relative inline-flex h-11 w-11 shrink-0 rotate-[8deg] items-center justify-center text-[10px] font-black text-white"
-      style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.3px' }}
     >
       <svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full" aria-hidden="true">
         <polygon
-          fill="var(--rf-saffron)"
+          fill="var(--ink-saffron)"
+          stroke={INK_KEY}
+          strokeWidth="3"
+          strokeLinejoin="round"
           points="50,4 59,21 78,13 74,33 94,38 80,52 94,66 74,71 78,90 59,84 50,98 41,84 22,90 26,71 6,66 20,52 6,38 26,33 22,13 41,21"
         />
       </svg>
@@ -193,12 +157,3 @@ export function Starburst({ children }: { children: ReactNode }) {
     </span>
   );
 }
-
-export function PlayTriangleIcon({ className = 'h-4 w-4' }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
-      <path d="M8 5v14l11-7z" />
-    </svg>
-  );
-}
-

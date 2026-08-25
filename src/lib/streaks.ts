@@ -11,8 +11,8 @@ export function getStreakData(): StreakData {
   if (raw) {
     try {
       return JSON.parse(raw);
-    } catch (e) {
-      // parse error
+    } catch {
+      // Corrupt entry: fall through to a fresh streak.
     }
   }
   return { currentStreak: 0, lastLoginDate: null, bestStreak: 0 };
@@ -56,6 +56,11 @@ export function updateStreak(): StreakData {
   }
   
   return data;
+}
+
+/** "1 days" is the kind of detail a child notices. */
+export function days(count: number): string {
+  return `${count} ${count === 1 ? 'day' : 'days'}`;
 }
 
 export const BELT_TIERS = [

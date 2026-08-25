@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState, useRef, type MouseEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 import { AlphabetSection } from '@/components/AlphabetSection';
 import { WordsSection } from '@/components/WordsSection';
 import { PhrasesSection } from '@/components/PhrasesSection';
@@ -8,9 +8,11 @@ import { StoriesSection } from '@/components/StoriesSection';
 import { QuizSection } from '@/components/QuizSection';
 import { ChatSection } from '@/components/ChatSection';
 import { SettingsSection } from '@/components/SettingsSection';
-import { BlockPrintBand, Guju, HalftoneOverlay, PlayTriangleIcon, ProgressRing, Starburst } from '@/components/RisoFolk';
+import { BlockPrintBand, Guju, Starburst } from '@/components/RisoFolk';
+import { Icon, type IconName } from '@/components/Icon';
+import { Art, ProgressRing } from '@/components/ui';
 import { useSpeak } from '@/components/useSpeak';
-import { swar, vyanjan, words, categoryMeta, type LetterItem, type WordItem } from '@/data/gujarati';
+import { swar, vyanjan, words, type LetterItem, type WordItem } from '@/data/gujarati';
 import { getLetterAudio, getLetterImage, getWordImage } from '@/data/assets';
 
 type TabId = 'home' | 'alphabet' | 'words' | 'phrases' | 'stories' | 'quiz' | 'chat' | 'progress';
@@ -42,35 +44,35 @@ const DEFAULT_PROGRESS: ProgressState = {
   lastActiveDate: '',
 };
 
-const SECTION_TILES: Array<{ id: Exclude<TabId, 'home' | 'progress'>; gu: string; en: string; sub: string }> = [
-  { id: 'alphabet', gu: 'કક્કો', en: 'Letters', sub: 'સ્વર · વ્યંજન' },
-  { id: 'words', gu: 'શબ્દો', en: 'Words', sub: '9 categories · Surat' },
-  { id: 'phrases', gu: 'વાક્યો', en: 'Phrases', sub: 'Say it out loud' },
-  { id: 'stories', gu: 'વાર્તા', en: 'Stories', sub: 'Read along' },
-  { id: 'quiz', gu: 'રમત', en: 'Quiz', sub: 'Play & win stars' },
-  { id: 'chat', gu: 'ગુજુ', en: 'Ask Guju', sub: 'Your tutor' },
-];
-
-const TAB_META: Record<TabId, { gu: string; en: string }> = {
-  home: { gu: 'ઘર', en: 'Home' },
-  alphabet: { gu: 'કક્કો', en: 'Letters' },
-  words: { gu: 'શબ્દો', en: 'Words' },
-  phrases: { gu: 'વાક્યો', en: 'Phrases' },
-  stories: { gu: 'વાર્તા', en: 'Stories' },
-  quiz: { gu: 'રમત', en: 'Quiz' },
-  chat: { gu: 'ગુજુ', en: 'Guju' },
-  progress: { gu: 'સેટિંગ્સ', en: 'Settings' },
+const TAB_META: Record<TabId, { gu: string; en: string; icon: IconName }> = {
+  home: { gu: 'ઘર', en: 'Home', icon: 'home' },
+  alphabet: { gu: 'કક્કો', en: 'Letters', icon: 'letters' },
+  words: { gu: 'શબ્દો', en: 'Words', icon: 'words' },
+  phrases: { gu: 'વાક્યો', en: 'Phrases', icon: 'phrases' },
+  stories: { gu: 'વાર્તા', en: 'Stories', icon: 'stories' },
+  quiz: { gu: 'રમત', en: 'Play', icon: 'quiz' },
+  chat: { gu: 'ગુજુ', en: 'Ask Guju', icon: 'spark' },
+  progress: { gu: 'પ્રગતિ', en: 'Progress', icon: 'progress' },
 };
 
-const BOTTOM_TABS = [
-  { id: 'home', gu: 'ઘર', en: 'HOME' },
-  { id: 'words', gu: 'શબ્દો', en: 'VOCAB' },
-  { id: 'stories', gu: 'વાર્તા', en: 'STORIES' },
-  { id: 'chat', gu: '', en: '' },
-  { id: 'quiz', gu: 'રમો', en: 'PLAY' },
-] as const;
+/** What a child reaches for on a phone. Guju rides a floating button instead
+ *  of stealing a tab slot, and Phrases/Progress live on Home and the sidebar. */
+const PHONE_TABS: TabId[] = ['home', 'alphabet', 'words', 'stories', 'quiz'];
 
-const TAB_ORDER: TabId[] = ['home', 'alphabet', 'words', 'phrases', 'stories', 'quiz', 'chat'];
+/** The full destination list, shown once there is room for it. */
+const ALL_TABS: TabId[] = ['home', 'alphabet', 'words', 'phrases', 'stories', 'quiz', 'chat', 'progress'];
+
+/** Swipe order on touch devices. */
+const SWIPE_ORDER: TabId[] = ['home', 'alphabet', 'words', 'phrases', 'stories', 'quiz', 'chat'];
+
+const SECTION_TILES: Array<{ id: TabId; sub: string }> = [
+  { id: 'alphabet', sub: 'સ્વર · વ્યંજન · trace them' },
+  { id: 'words', sub: '283 words · 10 groups' },
+  { id: 'phrases', sub: 'Say it out loud' },
+  { id: 'stories', sub: '48 stories · 9 rhymes' },
+  { id: 'quiz', sub: 'Play and win stars' },
+  { id: 'chat', sub: 'Your Gujarati buddy' },
+];
 
 function localISODate(date = new Date()): string {
   const year = date.getFullYear();
@@ -119,14 +121,6 @@ function migrateProgress(raw: unknown): ProgressState {
   return { ...base, lastActiveDate: today, streakDays: 1 };
 }
 
-function bottomActiveTab(activeTab: TabId): 'home' | 'words' | 'stories' | 'quiz' | 'chat' {
-  if (activeTab === 'home') return 'home';
-  if (activeTab === 'chat') return 'chat';
-  if (activeTab === 'quiz') return 'quiz';
-  if (activeTab === 'stories') return 'stories';
-  return 'words'; // Covers alphabet, words, phrases, progress
-}
-
 function firstUnlearnedLetter(learned: string[]): LetterItem {
   return ALL_LETTERS.find(letter => !learned.includes(letter.roman)) || ALL_LETTERS[0];
 }
@@ -135,40 +129,73 @@ function wordOfTheDay(): WordItem {
   return words[(dayOfYear() - 1) % words.length] || words[0];
 }
 
+/* ------------------------------------------------------------------- Nav */
+
+function NavItem({
+  tab,
+  active,
+  secondary,
+  onSelect,
+}: {
+  tab: TabId;
+  active: boolean;
+  /** Not one of the five phone tabs — appears once there is a sidebar. */
+  secondary: boolean;
+  onSelect: (tab: TabId) => void;
+}) {
+  const meta = TAB_META[tab];
+  return (
+    <button
+      type="button"
+      className={`rf-nav__item${secondary ? ' rf-nav__item--secondary' : ''}`}
+      aria-current={active ? 'page' : undefined}
+      onClick={() => onSelect(tab)}
+    >
+      <span className="rf-nav__mark">
+        <Icon name={meta.icon} size={20} strokeWidth={2.2} />
+      </span>
+      <span className="rf-nav__label">{meta.en}</span>
+    </button>
+  );
+}
+
+/* ------------------------------------------------------------------- App */
+
 export default function GujaratiApp() {
   const [activeTab, setActiveTab] = useState<TabId>('home');
   const [progress, setProgress] = useState<ProgressState>(DEFAULT_PROGRESS);
   const [hasLoadedProgress, setHasLoadedProgress] = useState(false);
   const { speak, currentlyPlaying } = useSpeak();
 
-  const touchStartX = useRef<number>(0);
-  const touchStartY = useRef<number>(0);
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX;
-    touchStartY.current = e.touches[0].clientY;
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    const dx = e.changedTouches[0].clientX - touchStartX.current;
-    const dy = Math.abs(e.changedTouches[0].clientY - touchStartY.current);
-    // Only horizontal swipes (not scrolls)
-    if (Math.abs(dx) < 60 || dy > Math.abs(dx) * 0.8) return;
-    const currentIndex = TAB_ORDER.indexOf(activeTab);
-    if (dx < 0 && currentIndex < TAB_ORDER.length - 1) {
-      // swipe left = go forward
-      setActiveTab(TAB_ORDER[currentIndex + 1]);
-    } else if (dx > 0 && currentIndex > 0) {
-      // swipe right = go back
-      setActiveTab(TAB_ORDER[currentIndex - 1]);
-    }
-  };
-
-  // Push a history entry per tab change so the Android/iOS back-gesture pops
-  // in-app navigation first instead of immediately leaving the site.
+  const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
   const isPoppingRef = useRef(false);
+  const mainRef = useRef<HTMLElement>(null);
 
+  const handleTouchStart = (event: React.TouchEvent) => {
+    touchStartX.current = event.touches[0].clientX;
+    touchStartY.current = event.touches[0].clientY;
+  };
+
+  const handleTouchEnd = (event: React.TouchEvent) => {
+    const dx = event.changedTouches[0].clientX - touchStartX.current;
+    const dy = Math.abs(event.changedTouches[0].clientY - touchStartY.current);
+    if (Math.abs(dx) < 60 || dy > Math.abs(dx) * 0.8) return;
+    const index = SWIPE_ORDER.indexOf(activeTab);
+    if (index < 0) return;
+    if (dx < 0 && index < SWIPE_ORDER.length - 1) setActiveTab(SWIPE_ORDER[index + 1]);
+    else if (dx > 0 && index > 0) setActiveTab(SWIPE_ORDER[index - 1]);
+  };
+
+  // Each tab change pushes history so the platform back gesture pops in-app
+  // navigation before it leaves the site.
   useEffect(() => {
+    const requested = new URLSearchParams(window.location.search).get('tab') as TabId | null;
+    if (requested && requested in TAB_META && requested !== 'home') {
+      isPoppingRef.current = true;
+      const timer = window.setTimeout(() => setActiveTab(requested), 0);
+      return () => window.clearTimeout(timer);
+    }
     window.history.replaceState(null, '', window.location.pathname);
   }, []);
 
@@ -191,17 +218,22 @@ export default function GujaratiApp() {
     return () => window.removeEventListener('popstate', onPopState);
   }, []);
 
+  // Moving between sections should start you at the top of the new one.
   useEffect(() => {
-    let nextProgress = DEFAULT_PROGRESS;
+    mainRef.current?.scrollTo?.({ top: 0 });
+    window.scrollTo({ top: 0 });
+  }, [activeTab]);
+
+  useEffect(() => {
+    let next = DEFAULT_PROGRESS;
     try {
       const saved = localStorage.getItem('gujarati-progress');
-      nextProgress = migrateProgress(saved ? JSON.parse(saved) : null);
+      next = migrateProgress(saved ? JSON.parse(saved) : null);
     } catch {
-      nextProgress = migrateProgress(null);
+      next = migrateProgress(null);
     }
-
     const timer = window.setTimeout(() => {
-      setProgress(nextProgress);
+      setProgress(next);
       setHasLoadedProgress(true);
     }, 0);
     return () => window.clearTimeout(timer);
@@ -246,230 +278,312 @@ export default function GujaratiApp() {
     }));
   }, []);
 
+  const recordQuiz = useCallback((score: number, total: number) => {
+    setProgress(p => ({ ...p, quizScore: p.quizScore + score, quizTotal: p.quizTotal + total }));
+  }, []);
+
   const continueLetter = useMemo(() => {
-    const savedLetter =
+    const saved =
       progress.lastLesson?.type === 'letter'
         ? ALL_LETTERS.find(letter => letter.roman === progress.lastLesson?.id)
         : undefined;
-    return savedLetter || firstUnlearnedLetter(progress.lettersLearned);
+    return saved || firstUnlearnedLetter(progress.lettersLearned);
   }, [progress.lastLesson, progress.lettersLearned]);
 
-  const dailyWord = useMemo(() => wordOfTheDay(), []);
+  // Resolved after mount: this page is statically prerendered, so a
+  // date-derived word baked in at build time mismatches on hydration.
+  const dailyWord = hasLoadedProgress ? wordOfTheDay() : null;
 
   const featuredWords = useMemo(() => {
-    const categories = ['animal', 'fruit', 'food', 'color', 'nature', 'family', 'body'];
-    return categories.map(cat => words.find(w => w.category === cat)).filter(Boolean) as WordItem[];
+    const categories = ['animal', 'fruit', 'food', 'color', 'nature', 'family', 'body', 'number', 'festival'];
+    return categories
+      .map(category => words.find(word => word.category === category))
+      .filter(Boolean) as WordItem[];
   }, []);
 
   const playContinueLetter = (event?: MouseEvent) => {
     event?.stopPropagation();
     const audio = getLetterAudio(continueLetter.roman);
-    if (audio) speak(audio, `letter-${continueLetter.roman}`);
-    else speak(continueLetter.gujarati, `letter-${continueLetter.roman}`);
+    speak(audio || continueLetter.gujarati, `letter-${continueLetter.roman}`, continueLetter.gujarati);
     markLetterLearned(continueLetter.roman);
   };
 
+  /* ----------------------------------------------------------------- Home */
+
   const renderHome = () => {
-    const letterImage = getLetterImage(continueLetter.roman) || '/images/gen/letter-ka.webp';
-    const wordImage = getWordImage(dailyWord.roman) || '/images/cow.webp';
+    const letterImage = getLetterImage(continueLetter.roman);
+    const continueId = `letter-${continueLetter.roman}`;
 
     return (
-      <div className="relative min-h-[calc(100dvh-96px)] pb-28 animate-fade-in">
-        <BlockPrintBand />
-
-        <div className="flex items-center gap-3 px-5 pt-4">
-          <div
-            className="flex h-[54px] w-[54px] shrink-0 items-center justify-center rounded-2xl bg-white"
-            style={{ border: '2px solid var(--rf-ink)', boxShadow: '3px 3px 0 var(--rf-saffron)' }}
+      <div className="rf-home">
+        {/* Masthead */}
+        <div className="rf-home__lead flex items-center" style={{ gap: 'var(--s-3)' }}>
+          <span
+            className="inline-flex items-center justify-center"
+            style={{
+              width: 56,
+              height: 56,
+              flex: 'none',
+              borderRadius: 'var(--r-md)',
+              background: 'var(--paper)',
+              border: 'var(--key)',
+              boxShadow: 'var(--lift-1) var(--ink-saffron)',
+            }}
           >
-            <Guju size={42} sw={2.6} />
-          </div>
+            <Guju size={40} sw={2.6} />
+          </span>
           <div className="min-w-0 flex-1">
-            <p className="text-[13px] font-semibold" style={{ color: 'var(--rf-muted)' }}>
+            <p style={{ fontSize: 'var(--t-sm)', fontWeight: 600, color: 'var(--text-2)' }}>
               Hi! I&apos;m Guju.
             </p>
             <h1
-              className="rf-gujarati truncate text-[25px] font-bold leading-[1.05]"
-              style={{ color: 'var(--rf-indigo)', textShadow: '1.5px 1.5px 0 var(--rf-saffron)' }}
+              className="rf-gujarati truncate"
+              style={{
+                fontSize: 'var(--t-2xl)',
+                fontWeight: 700,
+                lineHeight: 1.1,
+                color: 'var(--ink-indigo)',
+              }}
             >
               ગુજરાતી શીખો
             </h1>
           </div>
-          <button
-            type="button"
-            onClick={() => setActiveTab('progress')}
-            aria-label="Settings"
-            className="rf-pressable flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white"
-            style={{ border: '2px solid var(--rf-ink)', boxShadow: '2px 2px 0 var(--rf-ink)' }}
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--rf-indigo)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <circle cx="12" cy="12" r="3" />
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-            </svg>
-          </button>
         </div>
 
+        {/* Continue where you left off — the one thing a returning child wants */}
         <section
+          className="rf-press rf-lift-saffron rf-home__lead relative cursor-pointer overflow-hidden"
           role="button"
           tabIndex={0}
-          aria-label={`Continue Gujarati letter ${continueLetter.roman}`}
+          aria-label={`Continue with the letter ${continueLetter.gujarati}`}
           onClick={() => setActiveTab('alphabet')}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' || event.key === ' ') setActiveTab('alphabet');
+          onKeyDown={event => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              setActiveTab('alphabet');
+            }
           }}
-          className="rf-pressable relative mx-4 mt-4 cursor-pointer overflow-hidden p-3.5 text-white"
           style={{
-            background: 'var(--rf-indigo)',
-            borderRadius: 'var(--rf-radius-hero)',
-            border: 'var(--rf-border)',
-            boxShadow: 'var(--rf-shadow-saffron)',
+            background: 'var(--ink-indigo)',
+            color: 'var(--text-on-ink)',
+            border: 'var(--key)',
+            borderRadius: 'var(--r-xl)',
+            padding: 'var(--s-4)',
           }}
         >
-          <HalftoneOverlay alpha={0.1} size={7} />
-          <div className="pointer-events-none absolute -right-3 -top-3 opacity-20">
-            <svg width="110" height="110" viewBox="0 0 36 36" aria-hidden="true">
-              <rect x="6" y="6" width="24" height="24" transform="rotate(45 18 18)" fill="none" stroke="#fff" strokeWidth="1.6" />
-              <circle cx="18" cy="18" r="4" fill="#fff" />
-            </svg>
-          </div>
-
-          <div className="relative flex items-center gap-3">
-            <div className="h-[70px] w-[70px] shrink-0 overflow-hidden rounded-[14px] border-2 border-white/50 bg-white">
-              <img src={letterImage} alt="" className="rf-image-contain h-full w-full p-1" />
-            </div>
+          <span className="rf-halftone" aria-hidden="true" />
+          <div className="relative flex items-center" style={{ gap: 'var(--s-4)' }}>
+            <Art
+              src={letterImage}
+              alt=""
+              icon="letters"
+              style={{
+                width: 82,
+                height: 82,
+                flex: 'none',
+                borderRadius: 'var(--r-md)',
+                border: '2px solid rgba(255,253,247,0.55)',
+                padding: 4,
+              }}
+            />
             <div className="min-w-0 flex-1">
-              <p className="text-[11px] font-bold uppercase tracking-[1px]" style={{ color: 'var(--rf-saffron-pale)' }}>
-                Continue · પાઠ ૧
+              <p className="rf-label" style={{ color: 'var(--ink-saffron-pale)' }}>
+                Carry on
               </p>
-              <p className="rf-gujarati truncate text-[22px] font-bold leading-tight">
-                અક્ષર {continueLetter.gujarati}{' '}
-                <span className="font-sans text-sm font-medium opacity-70">&quot;{continueLetter.roman}&quot;</span>
+              <p
+                className="rf-gujarati truncate"
+                style={{ fontSize: 'var(--t-2xl)', fontWeight: 700, lineHeight: 1.15 }}
+              >
+                {continueLetter.gujarati}{' '}
+                <span
+                  style={{
+                    fontFamily: 'var(--font-ui)',
+                    fontSize: 'var(--t-md)',
+                    fontWeight: 500,
+                    opacity: 0.75,
+                  }}
+                >
+                  {continueLetter.roman}
+                </span>
               </p>
-              <p className="truncate text-[13px] font-medium opacity-85">
-                {continueLetter.exampleEnglish} · {continueLetter.example}
+              <p className="truncate" style={{ fontSize: 'var(--t-sm)', color: 'var(--text-on-ink-2)' }}>
+                {continueLetter.example} — {continueLetter.exampleEnglish}
               </p>
             </div>
             <button
               type="button"
               onClick={playContinueLetter}
-              aria-label={`Play ${continueLetter.gujarati}`}
-              className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-full border-2 border-white text-white transition-transform active:scale-95"
-              style={{ background: 'var(--rf-saffron)' }}
+              aria-label={`Hear ${continueLetter.gujarati}`}
+              className="rf-press inline-flex items-center justify-center rounded-full"
+              style={{
+                width: 52,
+                height: 52,
+                flex: 'none',
+                background: 'var(--ink-saffron)',
+                color: 'var(--text-on-ink)',
+                border: '2.5px solid var(--text-on-ink)',
+              }}
             >
-              <PlayTriangleIcon className={`h-5 w-5 ${currentlyPlaying === `letter-${continueLetter.roman}` ? 'animate-pulse' : ''}`} />
+              <Icon name={currentlyPlaying === continueId ? 'speakerLoud' : 'play'} size={22} />
             </button>
           </div>
         </section>
 
-        <div className="grid grid-cols-2 gap-2.5 px-4 pt-4">
-          {SECTION_TILES.map((item, index) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => setActiveTab(item.id)}
-              className="rf-pressable relative min-h-[92px] overflow-hidden px-[13px] py-3 text-left text-white"
-              style={{
-                background: index % 2 === 0 ? 'var(--rf-saffron)' : 'var(--rf-indigo)',
-                borderRadius: 'var(--rf-radius-card)',
-                border: 'var(--rf-border)',
-                boxShadow: 'var(--rf-shadow-ink)',
-              }}
-            >
-              <HalftoneOverlay alpha={0.14} size={6} />
-              <span className="absolute right-3 top-3 h-[9px] w-[9px] rotate-45 bg-white opacity-90" aria-hidden="true" />
-              <span className="relative block">
-                <span className="rf-gujarati block text-[21px] font-bold leading-none">{item.gu}</span>
-                <span className="mt-1 block text-xs font-bold uppercase tracking-[0.5px] opacity-95">{item.en}</span>
-                <span className="mt-0.5 block text-[11px] font-medium opacity-80">{item.sub}</span>
-              </span>
-            </button>
-          ))}
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('words')}
-          className="rf-pressable mx-4 mt-4 flex w-[calc(100%-2rem)] items-center gap-3 bg-white px-3 py-2.5 text-left"
-          style={{ borderRadius: 'var(--rf-radius-card)', border: 'var(--rf-border)', boxShadow: 'var(--rf-shadow-indigo)' }}
-        >
-          <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-white" style={{ border: '2px solid var(--rf-ink)' }}>
-            <img src={wordImage} alt="" className="rf-image-contain h-full w-full p-1" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-bold uppercase tracking-[1px]" style={{ color: 'var(--rf-saffron)' }}>
-              Word of the day
-            </p>
-            <p className="rf-gujarati truncate text-[22px] font-bold leading-none">
-              {dailyWord.gujarati}{' '}
-              <span className="font-sans text-[13px] font-semibold" style={{ color: 'var(--rf-muted)' }}>
-                {dailyWord.roman}
-              </span>
-            </p>
-            <p className="text-xs font-semibold" style={{ color: 'var(--rf-indigo)' }}>
-              {dailyWord.english}
-            </p>
-          </div>
-          <Starburst>NEW</Starburst>
-        </button>
-
-        {/* Featured Words Scroll */}
-        <div className="mt-4">
-          <p className="px-4 text-[11px] font-bold uppercase tracking-[1px] mb-2" style={{ color: 'var(--rf-muted)' }}>
-            Featured Words
-          </p>
-          <div className="flex gap-3 overflow-x-auto px-4 pb-2" style={{ scrollbarWidth: 'none' }}>
-            {featuredWords.map((word, i) => {
-              const img = getWordImage(word.roman);
+        {/* Everything the app can do */}
+        <nav className="rf-home__lead" aria-label="Sections">
+          <div className="rf-grid rf-grid--tiles">
+            {SECTION_TILES.map((tile, index) => {
+              const meta = TAB_META[tile.id];
+              const saffron = index % 2 === 0;
               return (
                 <button
-                  key={word.roman}
+                  key={tile.id}
                   type="button"
-                  onClick={() => setActiveTab('words')}
-                  className="rf-pressable flex-shrink-0 flex flex-col items-center gap-1 bg-white rounded-2xl p-2"
+                  onClick={() => setActiveTab(tile.id)}
+                  className={`rf-press rf-tile ${saffron ? 'rf-lift-indigo' : 'rf-lift-saffron'} relative overflow-hidden text-left`}
                   style={{
-                    width: 80,
-                    border: 'var(--rf-border)',
-                    boxShadow: i % 2 === 0 ? 'var(--rf-shadow-saffron)' : 'var(--rf-shadow-indigo)'
+                    padding: 'var(--s-3) var(--s-4)',
+                    background: saffron ? 'var(--ink-saffron)' : 'var(--ink-indigo)',
+                    // White cannot pass 4.5:1 on saffron, so the saffron half
+                    // of the pair prints its text in key ink instead.
+                    color: saffron ? 'var(--text-on-saffron)' : 'var(--text-on-ink)',
+                    border: 'var(--key)',
+                    borderRadius: 'var(--r-lg)',
                   }}
                 >
-                  {img ? (
-                    <img src={img} alt={word.english} className="w-14 h-14 object-contain rounded-xl"
-                      onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                  ) : (
-                    <div className="w-14 h-14 rounded-xl flex items-center justify-center text-2xl"
-                      style={{ background: 'var(--rf-cream)' }}>
-                      {categoryMeta[word.category]?.emoji || '📝'}
-                    </div>
-                  )}
-                  <p className="rf-gujarati text-xs font-bold text-center leading-tight" style={{ color: 'var(--rf-indigo)' }}>
-                    {word.gujarati}
-                  </p>
-                  <p className="text-[9px] font-semibold text-gray-500 text-center">{word.english}</p>
+                  <span className="rf-halftone" aria-hidden="true" />
+                  <span className="relative flex h-full flex-col justify-between">
+                    <Icon name={meta.icon} size={24} strokeWidth={2.2} />
+                    <span className="block">
+                      <span
+                        className="rf-gujarati block truncate"
+                        style={{ fontSize: 'var(--t-xl)', fontWeight: 700, lineHeight: 1.2 }}
+                      >
+                        {meta.gu}
+                      </span>
+                      <span
+                        className="block truncate"
+                        style={{
+                          fontSize: 'var(--t-xs)',
+                          color: saffron ? 'var(--text-on-saffron-2)' : 'var(--text-on-ink-2)',
+                        }}
+                      >
+                        {tile.sub}
+                      </span>
+                    </span>
+                  </span>
                 </button>
               );
             })}
           </div>
-        </div>
+        </nav>
 
-        <button
-          type="button"
-          onClick={() => setActiveTab('progress')}
-          className="rf-pressable mx-4 mt-4 flex w-[calc(100%-2rem)] items-center gap-3 bg-white px-3.5 py-2 text-left"
-          style={{ borderRadius: 'var(--rf-radius-card)', border: 'var(--rf-border)', boxShadow: 'var(--rf-shadow-saffron)' }}
-        >
-          <ProgressRing value={progress.lettersLearned.length} total={TOTAL_LETTERS} label="Letters learned" />
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-bold">
-              {progress.streakDays}-day streak!
-            </p>
-            <p className="truncate text-xs font-medium" style={{ color: 'var(--rf-muted)' }}>
-              {progress.lettersLearned.length} letters · {progress.wordsLearned.length} words learned
-            </p>
-          </div>
-          <span className="text-lg" aria-hidden="true">
-            🔥
-          </span>
-        </button>
+        {/* Side column: word of the day, streak, featured words */}
+        <div className="rf-home__side rf-grid" style={{ gap: 'var(--s-4)' }}>
+          {dailyWord ? (
+            <button
+              type="button"
+              onClick={() => setActiveTab('words')}
+              className="rf-press rf-lift-saffron rf-surface flex w-full items-center text-left"
+              style={{ gap: 'var(--s-3)', padding: 'var(--s-3)' }}
+            >
+              <Art
+                src={getWordImage(dailyWord.roman)}
+                alt=""
+                icon="words"
+                className="rf-art-frame"
+                style={{ width: 60, height: 60, flex: 'none', padding: 4 }}
+              />
+              <span className="min-w-0 flex-1">
+                <span className="rf-label" style={{ color: 'var(--ink-saffron-deep)' }}>
+                  Word of the day
+                </span>
+                <span
+                  className="rf-gujarati block truncate"
+                  style={{ fontSize: 'var(--t-xl)', fontWeight: 700, lineHeight: 1.25 }}
+                >
+                  {dailyWord.gujarati}
+                </span>
+                <span
+                  className="block truncate"
+                  style={{ fontSize: 'var(--t-sm)', fontWeight: 600, color: 'var(--ink-indigo)' }}
+                >
+                  {dailyWord.english}
+                  <span style={{ color: 'var(--text-2)', fontWeight: 500 }}> · {dailyWord.roman}</span>
+                </span>
+              </span>
+              <Starburst>NEW</Starburst>
+            </button>
+          ) : (
+            <div className="rf-skeleton" style={{ height: 86 }} aria-hidden="true" />
+          )}
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('progress')}
+            className="rf-press rf-lift-indigo rf-surface flex w-full items-center text-left"
+            style={{ gap: 'var(--s-3)', padding: 'var(--s-3)' }}
+          >
+            <ProgressRing
+              value={progress.lettersLearned.length}
+              total={TOTAL_LETTERS}
+              label={`${progress.lettersLearned.length} of ${TOTAL_LETTERS} letters learned`}
+            />
+            <span className="min-w-0 flex-1">
+              <span className="block truncate" style={{ fontSize: 'var(--t-md)', fontWeight: 700 }}>
+                {progress.streakDays === 1 ? 'First day!' : `${progress.streakDays}-day streak`}
+              </span>
+              <span
+                className="block truncate"
+                style={{ fontSize: 'var(--t-sm)', color: 'var(--text-2)' }}
+              >
+                {progress.lettersLearned.length} letters · {progress.wordsLearned.length} words
+              </span>
+            </span>
+            <Icon
+              name="flame"
+              size={24}
+              style={{ color: 'var(--ink-saffron)', flex: 'none' }}
+              title="Streak"
+            />
+          </button>
+
+          <section>
+            <h2 className="rf-label" style={{ marginBottom: 'var(--s-2)' }}>
+              A word from each group
+            </h2>
+            <div className="rf-scroll-x rf-wordrow" style={{ gap: 'var(--s-3)', paddingBottom: 'var(--s-2)' }}>
+              {featuredWords.map((word, index) => (
+                <button
+                  key={word.roman}
+                  type="button"
+                  onClick={() => setActiveTab('words')}
+                  className={`rf-press rf-surface ${index % 2 === 0 ? 'rf-lift-saffron' : 'rf-lift-indigo'} flex flex-col items-center`}
+                  style={{ width: 92, flex: 'none', gap: 4, padding: 'var(--s-2)' }}
+                >
+                  <Art
+                    src={getWordImage(word.roman)}
+                    alt=""
+                    icon="image"
+                    style={{ width: 60, height: 60, borderRadius: 'var(--r-sm)' }}
+                  />
+                  <span
+                    className="rf-gujarati w-full truncate text-center"
+                    style={{ fontSize: 'var(--t-sm)', fontWeight: 700, color: 'var(--ink-indigo)' }}
+                  >
+                    {word.gujarati}
+                  </span>
+                  <span
+                    className="w-full truncate text-center"
+                    style={{ fontSize: 'var(--t-2xs)', fontWeight: 600, color: 'var(--text-2)' }}
+                  >
+                    {word.english}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </section>
+        </div>
       </div>
     );
   };
@@ -479,7 +593,7 @@ export default function GujaratiApp() {
       case 'home':
         return renderHome();
       case 'alphabet':
-        return <AlphabetSection onLetterLearned={markLetterLearned} />;
+        return <AlphabetSection lettersLearned={progress.lettersLearned} onLetterLearned={markLetterLearned} />;
       case 'words':
         return <WordsSection wordsLearned={progress.wordsLearned} onWordLearned={markWordLearned} />;
       case 'phrases':
@@ -489,11 +603,11 @@ export default function GujaratiApp() {
           <StoriesSection
             storiesRead={progress.storiesRead}
             onStoryRead={markStoryRead}
-            onQuizComplete={(s, t) => setProgress(p => ({ ...p, quizScore: p.quizScore + s, quizTotal: p.quizTotal + t }))}
+            onQuizComplete={recordQuiz}
           />
         );
       case 'quiz':
-        return <QuizSection onQuizComplete={(s, t) => setProgress(p => ({ ...p, quizScore: p.quizScore + s, quizTotal: p.quizTotal + t }))} />;
+        return <QuizSection onQuizComplete={recordQuiz} />;
       case 'chat':
         return <ChatSection />;
       case 'progress':
@@ -501,120 +615,108 @@ export default function GujaratiApp() {
     }
   };
 
-  const activeBottom = bottomActiveTab(activeTab);
+  const meta = TAB_META[activeTab];
 
   return (
-    <div className="min-h-screen bg-[var(--rf-cream)]">
-      {activeTab !== 'home' && (
-        <header
-          className="sticky top-0 z-40 border-b-2 bg-white"
-          style={{ borderColor: 'var(--rf-ink)' }}
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
+    <div className="rf-app">
+      <nav className="rf-nav rf-no-print" aria-label="Main">
+        {/* The rail identifies the app once the home masthead is off-screen. */}
+        <div
+          className="rf-nav__brand"
+          style={{ gap: 'var(--s-2)', padding: '0 var(--s-2) var(--s-4)' }}
         >
-          <div className="mx-auto flex max-w-lg items-center justify-between px-4 py-3">
-            <button
-              type="button"
-              onClick={() => setActiveTab('home')}
-              className="rf-pressable flex min-h-11 items-center gap-2 rounded-xl px-2 text-left"
-            >
-              <span className="text-xl leading-none">←</span>
-              <span>
-                <span className="rf-gujarati block text-base font-bold leading-none" style={{ color: 'var(--rf-indigo)' }}>
-                  {TAB_META[activeTab].gu}
-                </span>
-                <span className="block text-[10px] font-bold uppercase tracking-[0.6px]" style={{ color: 'var(--rf-muted)' }}>
-                  {TAB_META[activeTab].en}
-                </span>
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('progress')}
-              aria-label="Settings"
-              className="rf-pressable flex min-h-11 min-w-11 items-center justify-center rounded-xl"
-              style={{
-                background: activeTab === 'progress' ? 'var(--rf-saffron)' : 'var(--rf-card)',
-                color: activeTab === 'progress' ? '#fff' : 'var(--rf-indigo)',
-                border: '2px solid var(--rf-ink)',
-                boxShadow: '2px 2px 0 var(--rf-ink)',
-              }}
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <circle cx="12" cy="12" r="3" />
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-              </svg>
-            </button>
-          </div>
-        </header>
+          <Guju size={30} sw={2.6} />
+          <span
+            className="rf-gujarati rf-from-desktop truncate"
+            style={{ fontSize: 'var(--t-md)', fontWeight: 700, color: 'var(--ink-indigo)' }}
+          >
+            ગુજરાતી શીખો
+          </span>
+        </div>
+
+        <div className="rf-nav__list">
+          {ALL_TABS.map(tab => (
+            <NavItem
+              key={tab}
+              tab={tab}
+              active={activeTab === tab}
+              secondary={!PHONE_TABS.includes(tab)}
+              onSelect={setActiveTab}
+            />
+          ))}
+        </div>
+
+        <BlockPrintBand height={10} opacity={0.4} className="rf-from-tablet" />
+      </nav>
+
+      {/* Guju is one tap away on a phone without costing a tab slot — but not
+          on the chat screen itself, where it covered the Send button. */}
+      {activeTab !== 'chat' && (
+        <button
+          type="button"
+          className="rf-guju-fab rf-no-print"
+          aria-label="Ask Guju, your Gujarati tutor"
+          onClick={() => setActiveTab('chat')}
+        >
+          <Guju size={26} sw={2.4} />
+          <span>GUJU</span>
+        </button>
       )}
 
-      <main className="mx-auto max-w-lg pb-24">
-        {renderContent()}
-      </main>
-
-      <nav
-        className="fixed bottom-0 left-0 right-0 z-50 bg-white"
-        style={{
-          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-          boxShadow: '0 -2px 0 var(--rf-ink)',
-        }}
+      <main
+        ref={mainRef}
+        className="rf-main"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
       >
-        <div className="mx-auto max-w-lg">
-          <BlockPrintBand height={9} opacity={0.45} />
-          <div className="flex h-14 border-t-2 bg-white relative" style={{ borderColor: 'var(--rf-ink)' }}>
-            {BOTTOM_TABS.map((tab, idx) => {
-              const isActive = activeBottom === tab.id;
-              
-              if (tab.id === 'chat') {
-                return (
-                  <div key={tab.id} className="flex flex-1 items-center justify-center relative">
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('chat')}
-                      className="absolute -top-6 guju-badge flex flex-col items-center justify-center h-16 w-16 rounded-full z-10"
-                      style={{
-                        background: 'linear-gradient(135deg, var(--rf-pink) 0%, var(--rf-indigo) 100%)',
-                        border: '3px solid var(--rf-ink)',
-                      }}
-                      aria-label="Guju AI Chat"
-                    >
-                      <Guju size={24} sw={2} />
-                      <span className="text-white font-black text-[10px] tracking-wide leading-none mt-1" style={{ fontFamily: 'var(--font-display)', textShadow: '1px 1px 0 rgba(0,0,0,0.3)' }}>
-                        GUJU AI
-                      </span>
-                    </button>
-                  </div>
-                );
-              }
-
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setActiveTab(tab.id)}
-                  className="flex flex-1 items-center justify-center pt-1"
-                  aria-current={isActive ? 'page' : undefined}
-                >
+        {activeTab !== 'home' && (
+          <header
+            className="sticky top-0 z-40 rf-no-print"
+            style={{
+              background: 'var(--paper)',
+              borderBottom: 'var(--key-thin)',
+              paddingTop: 'var(--safe-top)',
+            }}
+          >
+            <div
+              className="rf-page flex items-center"
+              style={{ gap: 'var(--s-2)', paddingTop: 'var(--s-2)', paddingBottom: 'var(--s-2)' }}
+            >
+              <button
+                type="button"
+                onClick={() => setActiveTab('home')}
+                className="rf-btn rf-btn--quiet"
+                style={{ paddingLeft: 'var(--s-2)', paddingRight: 'var(--s-3)' }}
+              >
+                <Icon name="arrowLeft" size={20} />
+                <span className="text-left">
                   <span
-                    className="flex min-h-11 min-w-12 flex-col items-center justify-center gap-0.5 px-2 py-1 transition-all"
-                    style={{
-                      background: isActive ? 'var(--rf-saffron)' : 'transparent',
-                      color: isActive ? '#fff' : 'var(--rf-muted)',
-                      borderRadius: 12,
-                      border: isActive ? '2px solid var(--rf-ink)' : '2px solid transparent',
-                      transform: isActive ? 'scale(1.05)' : 'scale(1)',
-                    }}
+                    className="rf-gujarati block"
+                    style={{ fontSize: 'var(--t-md)', lineHeight: 1.1, color: 'var(--ink-indigo)' }}
                   >
-                    <span className="rf-gujarati text-base font-bold leading-none">{tab.gu}</span>
-                    <span className="text-[8px] font-bold uppercase tracking-[0.5px]">{tab.en}</span>
+                    {meta.gu}
                   </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </nav>
+                  <span className="rf-label block">{meta.en}</span>
+                </span>
+              </button>
+
+              <span className="flex-1" />
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('progress')}
+                aria-label="Progress and settings"
+                aria-pressed={activeTab === 'progress'}
+                className="rf-icon-btn"
+              >
+                <Icon name="progress" size={20} />
+              </button>
+            </div>
+          </header>
+        )}
+
+        <div className="rf-page">{renderContent()}</div>
+      </main>
     </div>
   );
 }

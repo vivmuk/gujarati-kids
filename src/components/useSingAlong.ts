@@ -2,6 +2,7 @@
 import { useCallback, useRef, useState, type MutableRefObject } from 'react';
 import { useSpeak } from './useSpeak';
 import type { Balgeet } from '@/data/gujarati';
+import { getBalgeetLineAudio } from '@/data/assets';
 
 type SpeakFn = (textOrPath: string, id: string, fallbackText?: string, onEnded?: () => void) => Promise<void>;
 
@@ -27,7 +28,9 @@ function playFrom(
   const id = `singalong-${song.id}-line-${index}`;
   currentIdRef.current = id;
   setActiveLineIndex(index);
-  void speak(line.gujarati, id, undefined, () => {
+  // Pre-generated audio keeps the rhythm of a rhyme intact; live TTS is the
+  // fallback for a line whose file has not been generated yet.
+  void speak(getBalgeetLineAudio(song.id, index) || line.gujarati, id, line.gujarati, () => {
     if (stoppedRef.current) return;
     playFrom(speak, song, index + 1, stoppedRef, currentIdRef, setActiveLineIndex, setIsPlaying);
   });

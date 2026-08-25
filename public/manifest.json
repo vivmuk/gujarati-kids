@@ -1,18 +1,39 @@
 {
   "name": "ગુજરાતી શીખો — Learn Gujarati",
   "short_name": "ગુજરાતી",
-  "description": "Interactive Gujarati learning app for kids with AI speech, images & stories",
+  "description": "Learn Gujarati by ear: 47 letters, 283 words, 48 stories and 9 nursery rhymes, every one of them spoken aloud.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#FFFBF5",
-  "theme_color": "#FFA63D",
+  "background_color": "#f6efdd",
+  "theme_color": "#ef5a23",
   "orientation": "portrait",
+  "lang": "gu",
+  "categories": ["education", "kids"],
   "icons": [
     {
-      "src": "/images/home.webp",
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
       "sizes": "512x512",
-      "type": "image/webp",
-      "purpose": "any maskable"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192-maskable.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }

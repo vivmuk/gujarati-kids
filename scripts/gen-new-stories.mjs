@@ -9,7 +9,11 @@ import path from 'path';
 
 const execAsync = promisify(exec);
 
-const API_KEY = 'VENICE_INFERENCE_KEY_PiHYRVLmAsxiN7aAj_M_Dg88OTjI8G0Lx1ZhMUxLd7';
+const API_KEY = process.env.VENICE_API_KEY;
+if (!API_KEY) {
+  console.error('VENICE_API_KEY is not set. Export it (or source .env.local) before running.');
+  process.exit(1);
+}
 const BASE = 'https://api.venice.ai/api/v1';
 const IMAGE_MODEL = 'grok-imagine-image-quality';
 const TTS_MODEL = 'tts-xai-v1';

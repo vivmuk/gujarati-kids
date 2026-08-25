@@ -1,7 +1,10 @@
 'use client';
-import { useEffect } from 'react';
-import { type Balgeet } from '@/data/gujarati';
+
+import { useEffect, useRef } from 'react';
+import type { Balgeet } from '@/data/gujarati';
 import { useSingAlong } from './useSingAlong';
+import { Icon } from './Icon';
+import { Overlay } from './ui';
 
 interface Props {
   song: Balgeet;
@@ -10,6 +13,7 @@ interface Props {
 
 export function SingAlong({ song, onClose }: Props) {
   const { activeLineIndex, isPlaying, start, stop } = useSingAlong();
+  const activeRef = useRef<HTMLLIElement>(null);
 
   useEffect(() => {
     start(song);
@@ -17,73 +21,117 @@ export function SingAlong({ song, onClose }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [song.id]);
 
+  // Keep the line being sung in view on a short phone screen.
+  useEffect(() => {
+    activeRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, [activeLineIndex]);
+
   const handleClose = () => {
     stop();
     onClose();
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(2px)' }}
-      onClick={(e) => { if (e.target === e.currentTarget) handleClose(); }}
-    >
-      <div className="relative w-full max-w-sm">
+    <Overlay onClose={handleClose} labelledBy="singalong-title">
+      <div className="relative">
         <button
+          type="button"
           onClick={handleClose}
-          className="absolute -top-2 -right-2 z-10 w-9 h-9 rounded-full flex items-center justify-center text-gray-500 bg-white shadow-md hover:bg-gray-100 transition-colors text-lg font-bold"
-          aria-label="Close"
+          aria-label="Close sing along"
+          className="rf-icon-btn absolute"
+          style={{ top: -14, right: -8, zIndex: 2, width: 40, height: 40 }}
         >
-          ✕
+          <Icon name="close" size={20} strokeWidth={2.4} />
         </button>
 
         <div
-          className="relative bg-white rounded-3xl shadow-2xl w-full p-5 flex flex-col gap-1"
-          style={{ border: '2.5px solid var(--rf-indigo, #3B3596)', boxShadow: '6px 6px 0 var(--rf-indigo, #3B3596)' }}
+          className="rf-surface flex flex-col"
+          style={{
+            gap: 'var(--s-3)',
+            padding: 'var(--s-5)',
+            boxShadow: 'var(--lift-3) var(--ink-indigo), var(--shadow-float)',
+          }}
         >
-          <p className="text-center text-xs font-black uppercase tracking-[0.7px] text-gray-500">🎵 Sing Along</p>
-          <p className="text-center font-bold text-lg mt-1" style={{ fontFamily: 'var(--font-gujarati)' }}>{song.titleGujarati}</p>
+          <div className="flex flex-col items-center" style={{ gap: 'var(--s-1)' }}>
+            <span
+              className="inline-flex items-center justify-center rounded-full"
+              style={{
+                width: 46,
+                height: 46,
+                background: 'var(--ink-saffron)',
+                color: 'var(--text-on-ink)',
+                border: 'var(--key-thin)',
+              }}
+            >
+              <Icon name="music" size={24} />
+            </span>
+            <p className="rf-label">Sing along</p>
+            <h2
+              id="singalong-title"
+              className="rf-gujarati text-center"
+              style={{ fontSize: 'var(--t-xl)', fontWeight: 700 }}
+            >
+              {song.titleGujarati}
+            </h2>
+          </div>
 
-          <div className="space-y-2 max-h-[50vh] overflow-y-auto mt-3">
-            {song.lines.map((line, i) => {
-              const isActive = activeLineIndex === i;
+          <ol
+            className="rf-stack"
+            style={{ maxHeight: '46vh', overflowY: 'auto', margin: 0, padding: 0, listStyle: 'none' }}
+          >
+            {song.lines.map((line, index) => {
+              const isActive = activeLineIndex === index;
               return (
-                <div
-                  key={i}
-                  className={`rounded-xl p-3 transition-all ${isActive ? 'scale-[1.03]' : 'opacity-60'}`}
+                <li
+                  key={index}
+                  ref={isActive ? activeRef : undefined}
+                  aria-current={isActive ? 'true' : undefined}
                   style={{
-                    background: isActive ? 'var(--saffron-100)' : 'var(--rf-cream)',
-                    border: isActive ? '2px solid var(--rf-saffron)' : '2px solid transparent',
+                    padding: 'var(--s-3)',
+                    borderRadius: 'var(--r-md)',
+                    background: isActive ? 'var(--ink-saffron)' : 'var(--paper-sunk)',
+                    color: isActive ? 'var(--text-on-ink)' : 'var(--text-1)',
+                    border: isActive ? 'var(--key-thin)' : '2px solid transparent',
+                    boxShadow: isActive ? 'var(--lift-1) var(--ink-key)' : 'none',
+                    opacity: isActive || activeLineIndex === null ? 1 : 0.62,
+                    transition: 'all var(--dur-2) var(--ease)',
                   }}
                 >
-                  <p className="font-bold" style={{ fontFamily: 'var(--font-gujarati)' }}>{line.gujarati}</p>
-                  <p className="text-xs text-gray-500">{line.roman}</p>
-                </div>
+                  <p className="rf-gujarati" style={{ fontSize: 'var(--t-lg)', fontWeight: 700 }}>
+                    {line.gujarati}
+                  </p>
+                  <p
+                    style={{
+                      fontSize: 'var(--t-xs)',
+                      color: isActive ? 'var(--text-on-ink-2)' : 'var(--text-2)',
+                    }}
+                  >
+                    {line.roman}
+                  </p>
+                  <p
+                    style={{
+                      fontSize: 'var(--t-xs)',
+                      fontWeight: 600,
+                      color: isActive ? 'var(--text-on-ink-2)' : 'var(--text-2)',
+                    }}
+                  >
+                    {line.english}
+                  </p>
+                </li>
               );
             })}
-          </div>
+          </ol>
 
-          <div className="flex justify-center mt-3">
-            {isPlaying ? (
-              <button
-                onClick={stop}
-                className="px-6 py-2.5 rounded-full font-bold text-white active:scale-95 transition-transform"
-                style={{ background: 'var(--rf-ink)' }}
-              >
-                ⏸ Stop
-              </button>
-            ) : (
-              <button
-                onClick={() => start(song)}
-                className="px-6 py-2.5 rounded-full font-bold text-white active:scale-95 transition-transform"
-                style={{ background: 'var(--gradient-saffron)' }}
-              >
-                ▶ Sing Again
-              </button>
-            )}
-          </div>
+          <button
+            type="button"
+            onClick={() => (isPlaying ? stop() : start(song))}
+            className={`rf-btn rf-btn--block rf-btn--lg ${isPlaying ? 'rf-btn--paper' : 'rf-btn--primary'}`}
+          >
+            <Icon name={isPlaying ? 'pause' : 'play'} size={18} />
+            {isPlaying ? 'Stop' : 'Sing it again'}
+          </button>
         </div>
       </div>
-    </div>
+    </Overlay>
   );
 }

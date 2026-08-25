@@ -36,3 +36,6 @@ yarn-error.log*
 next-env.d.ts
 # Generated assets live in git so the deployed app is self-contained.
 # Regenerate with `npm run pregen` if you delete them locally.
+
+# Cached paid video shots — regenerate with scripts/make-story-films.mts
+/.cache/
