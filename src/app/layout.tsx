@@ -66,6 +66,7 @@ export default function RootLayout({
         />
       </head>
       <body>
+        <script src="/byok.js" async />
         {/* ====================================================================
         THESIS: A Gujarati primer printed as a two-colour riso zine, where the
         interface is made of the same ink as the 690 illustrations inside it.

@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
 
     if (!audioBlob) return NextResponse.json({ error: 'No audio file' }, { status: 400 });
 
-    const VENICE_API_KEY = process.env.VENICE_API_KEY;
+    const VENICE_API_KEY = (req?.headers?.get('x-venice-key') || '') || process.env.VENICE_API_KEY || '';
     const VENICE_BASE_URL = process.env.VENICE_BASE_URL || 'https://api.venice.ai/api/v1';
 
     const veniceForm = new FormData();

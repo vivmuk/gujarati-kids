@@ -28,7 +28,7 @@ export function useWordImage(roman: string, englishLabel: string, autoGenerate =
     try {
       const res = await fetch('/api/image', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'x-venice-key': (window.getVeniceKey ? (window.getVeniceKey()||'') : ''), 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: `${englishLabel} — a colorful Gujarati folk illustration for children` }),
       });
       if (res.ok) {

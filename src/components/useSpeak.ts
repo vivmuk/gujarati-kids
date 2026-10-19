@@ -47,7 +47,7 @@ export function useSpeak() {
       try {
         const res = await fetch('/api/tts', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'x-venice-key': (window.getVeniceKey ? (window.getVeniceKey()||'') : ''), 'Content-Type': 'application/json' },
           body: JSON.stringify({
             text,
             model: 'tts-xai-v1',

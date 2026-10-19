@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
     const { text, model, voice, speed, language } = await req.json();
     if (!text?.trim()) return NextResponse.json({ error: 'Text required' }, { status: 400 });
 
-    const VENICE_API_KEY = process.env.VENICE_API_KEY;
+    const VENICE_API_KEY = (req?.headers?.get('x-venice-key') || '') || process.env.VENICE_API_KEY || '';
     const VENICE_BASE_URL = process.env.VENICE_BASE_URL || 'https://api.venice.ai/api/v1';
 
     // Auto-detect Gujarati text to set language hint for proper pronunciation

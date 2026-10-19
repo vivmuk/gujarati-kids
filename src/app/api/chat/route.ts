@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const VENICE_API_KEY = process.env.VENICE_API_KEY;
+    const VENICE_API_KEY = (req?.headers?.get('x-venice-key') || '') || process.env.VENICE_API_KEY || '';
     const VENICE_BASE_URL = process.env.VENICE_BASE_URL || 'https://api.venice.ai/api/v1';
 
     // History arrives as a proper array of {role, content} — keep the last 8 turns for context.

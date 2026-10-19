@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
     const { prompt } = await req.json();
     if (!prompt?.trim()) return NextResponse.json({ error: 'Prompt required' }, { status: 400 });
 
-    const VENICE_API_KEY = process.env.VENICE_API_KEY;
+    const VENICE_API_KEY = (req?.headers?.get('x-venice-key') || '') || process.env.VENICE_API_KEY || '';
     const VENICE_BASE_URL = process.env.VENICE_BASE_URL || 'https://api.venice.ai/api/v1';
 
     const res = await fetch(`${VENICE_BASE_URL}/image/generate`, {

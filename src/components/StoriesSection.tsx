@@ -97,7 +97,7 @@ function StoryFilm({ story }: { story: StoryItem }) {
     try {
       const res = await fetch('/api/video', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'x-venice-key': (window.getVeniceKey ? (window.getVeniceKey()||'') : ''), 'Content-Type': 'application/json' },
         body: JSON.stringify({
           imageUrl: getStoryImage(story.id),
           prompt: `A gentle Gujarati folk riso-style children's story animation for "${story.titleEnglish}". Keep the full subject visible with generous padding, subtle friendly motion, light cream or white background, no new text, no watermark.`,

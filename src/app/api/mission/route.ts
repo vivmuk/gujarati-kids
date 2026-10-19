@@ -28,7 +28,7 @@ Provide a fun, kid-friendly mission!`;
 
 export async function POST(req: NextRequest) {
   try {
-    const VENICE_API_KEY = process.env.VENICE_API_KEY;
+    const VENICE_API_KEY = (req?.headers?.get('x-venice-key') || '') || process.env.VENICE_API_KEY || '';
     const VENICE_BASE_URL = process.env.VENICE_BASE_URL || 'https://api.venice.ai/api/v1';
 
     if (!VENICE_API_KEY) {
