@@ -89,7 +89,7 @@ def text_png(markup: str, out: Path) -> Path:
         fh.write(markup)
         src = fh.name
     try:
-        sh("magick", "-background", "none", "-density", "144", f"pango:@{src}", str(out))
+        sh("magick", "-background", "none", "-density", "96", f"pango:@{src}", str(out))
     finally:
         os.unlink(src)
     return out
@@ -109,18 +109,24 @@ def card(art: Path, out: Path, title: str, subtitle: str | None, band: int = 250
     out.parent.mkdir(parents=True, exist_ok=True)
     tmp = Path(tempfile.mkdtemp(prefix="card-"))
     try:
-        gu = text_png(pango_markup(title, GU_FONT, 46, INDIGO), tmp / "gu.png")
-        en = text_png(pango_markup(subtitle.upper(), EN_FONT, 20, SAFFRON, "normal"), tmp / "en.png") if subtitle else None
-        gu_w, gu_h = png_size(gu)
-        en_w, en_h = png_size(en) if en else (0, 0)
-        # Shrink an over-wide title rather than letting it run off the plate.
-        if gu_w > OUT_W - 48:
-            scale = (OUT_W - 48) / gu_w
-            sh("magick", str(gu), "-resize", f"{int(gu_w * scale)}x", str(gu))
-            gu_w, gu_h = png_size(gu)
+        gu = text_png(pango_markup(title, GU_FONT, 56, INDIGO), tmp / "gu.png")
+        en = text_png(pango_markup(subtitle.upper(), EN_FONT, 22, SAFFRON, "normal"), tmp / "en.png") if subtitle else None
 
-        block = gu_h + (10 + en_h if en else 0)
-        top = band - block - 24 if block < band - 48 else 18
+        # Both lines are fitted to the plate. A moral in English is often wider
+        # than the frame, and a clipped subtitle is worse than a small one.
+        def fit(image: Path) -> tuple[int, int]:
+            width, height = png_size(image)
+            limit = OUT_W - 56
+            if width > limit:
+                sh("magick", str(image), "-resize", f"{limit}x", str(image))
+                width, height = png_size(image)
+            return width, height
+
+        gu_w, gu_h = fit(gu)
+        en_w, en_h = fit(en) if en else (0, 0)
+
+        block = gu_h + (12 + en_h if en else 0)
+        top = max(12, (band - block) // 2)
 
         plate = tmp / "plate.png"
         sh(
@@ -133,7 +139,7 @@ def card(art: Path, out: Path, title: str, subtitle: str | None, band: int = 250
            "-geometry", f"+0+{top}", "-composite", str(plate))
         if en:
             sh("magick", str(plate), str(en), "-gravity", "north",
-               "-geometry", f"+0+{top + gu_h + 10}", "-composite", str(plate))
+               "-geometry", f"+0+{top + gu_h + 12}", "-composite", str(plate))
 
         sh(
             "magick", str(art),
