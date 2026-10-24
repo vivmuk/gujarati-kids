@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useRef, useState, type MutableRefObject } from 'react';
+import { useCallback, useEffect, useRef, useState, type MutableRefObject } from 'react';
 import { useSpeak } from './useSpeak';
 import type { Balgeet } from '@/data/gujarati';
 import { getBalgeetLineAudio } from '@/data/assets';
@@ -40,12 +40,41 @@ export function useSingAlong() {
   const { speak, ttsLoading } = useSpeak();
   const [activeLineIndex, setActiveLineIndex] = useState<number | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [hasBed, setHasBed] = useState(false);
   const stoppedRef = useRef(false);
   const currentIdRef = useRef<string | null>(null);
+  // A sung rhyme needs a floor under it. The bed is a Venice-generated folk
+  // loop per song, kept well below the voice so the words stay the subject.
+  const bedRef = useRef<HTMLAudioElement | null>(null);
+
+  const stopBed = () => {
+    const bed = bedRef.current;
+    if (bed) {
+      bed.pause();
+      bed.currentTime = 0;
+    }
+    bedRef.current = null;
+    setHasBed(false);
+  };
+
+  const startBed = (songId: string) => {
+    stopBed();
+    if (typeof window === 'undefined') return;
+    const bed = new Audio(`/audio/balgeet-${songId}-bed.mp3`);
+    bed.loop = true;
+    bed.volume = 0.16;
+    bed.preload = 'auto';
+    // A missing bed is not an error — the rhyme simply sings unaccompanied.
+    bed.onerror = () => setHasBed(false);
+    bed.oncanplay = () => setHasBed(true);
+    bedRef.current = bed;
+    void bed.play().catch(() => setHasBed(false));
+  };
 
   const start = useCallback((song: Balgeet) => {
     stoppedRef.current = false;
     setIsPlaying(true);
+    startBed(song.id);
     playFrom(speak, song, 0, stoppedRef, currentIdRef, setActiveLineIndex, setIsPlaying);
   }, [speak]);
 
@@ -56,9 +85,12 @@ export function useSingAlong() {
       void speak('', currentIdRef.current);
     }
     currentIdRef.current = null;
+    stopBed();
     setIsPlaying(false);
     setActiveLineIndex(null);
   }, [speak]);
 
-  return { activeLineIndex, isPlaying, ttsLoading, start, stop };
+  useEffect(() => () => stopBed(), []);
+
+  return { activeLineIndex, isPlaying, ttsLoading, hasBed, start, stop };
 }

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { generateQuiz } from '@/data/gujarati';
 import { useSpeak } from './useSpeak';
+import { useSfx } from './useSfx';
 import { Icon, type IconName } from './Icon';
 import { Confetti, Meter, PlayButton, SectionHeader, SegTabs } from './ui';
 
@@ -39,6 +40,7 @@ export function QuizSection({ onQuizComplete }: Props) {
   const [answered, setAnswered] = useState(0);
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const { speak, currentlyPlaying, ttsLoading, ttsProgress, failedId } = useSpeak();
+  const { play: playSfx } = useSfx();
 
   const startQuiz = useCallback(() => {
     setQuestions(generateQuiz(quizType, quizLevel, isTimeAttack ? 50 : STANDARD_QUESTIONS));
@@ -53,6 +55,7 @@ export function QuizSection({ onQuizComplete }: Props) {
   const finish = useCallback(
     (finalScore: number, total: number) => {
       setShowResult(true);
+      if (total > 0 && finalScore / total >= 0.8) playSfx('win');
       onQuizComplete(finalScore, total);
     },
     [onQuizComplete]
@@ -76,7 +79,13 @@ export function QuizSection({ onQuizComplete }: Props) {
     const correct = index === questions[currentQ].answer;
     const nextScore = correct ? score + 1 : score;
     const nextAnswered = answered + 1;
-    if (correct) setScore(nextScore);
+    if (correct) {
+      setScore(nextScore);
+      playSfx('correct');
+    } else {
+      // Not punishment: a soft descending pair, then the right answer is lit.
+      playSfx('retry');
+    }
     setAnswered(nextAnswered);
 
     window.setTimeout(() => {

@@ -8,13 +8,14 @@ import {
   getStoryImage,
   getStoryLineAudio,
   getStoryLineImage,
+  getStoryMoralAudio,
   getStoryTitleAudio,
   getStoryVideo,
   hasStoryVideo,
 } from '@/data/assets';
 import { useSpeak } from './useSpeak';
 import { Icon } from './Icon';
-import { Art, Chip, Deck, EmptyState, LearnedStamp, Meter, PlayButton, SectionHeader, SegTabs } from './ui';
+import { Art, Chip, Deck, EmptyState, LearnedStamp, Meter, PlayButton, SectionHeader, SegTabs, SpeakButton } from './ui';
 import { StoryQuiz } from './StoryQuiz';
 import { SingAlong } from './SingAlong';
 
@@ -269,6 +270,7 @@ function StoryReader({
   const [partIndex, setPartIndex] = useState<number | null>(null);
   const [showQuiz, setShowQuiz] = useState(false);
   const titleId = `story-${story.id}-title`;
+  const moralId = `story-${story.id}-moral`;
   const heroSrc = getStoryImage(story.id);
 
   return (
@@ -448,7 +450,29 @@ function StoryReader({
           )}
           {story.moralEnglish && (
             <div style={story.questionEnglish ? { borderTop: '2px dashed var(--paper-edge)', paddingTop: 'var(--s-3)' } : undefined}>
-              <h2 className="rf-label">What the story teaches</h2>
+              {/* The lesson is a line a child should hear, not only read — each
+                  one is pre-narrated, so this is a tap, not a TTS round trip. */}
+              <div className="flex items-center" style={{ gap: 'var(--s-2)' }}>
+                <h2 className="rf-label">What the story teaches</h2>
+                {story.moralGujarati && (
+                  <SpeakButton
+                    id={moralId}
+                    label="Hear the lesson"
+                    onClick={event => {
+                      event.stopPropagation();
+                      speak(
+                        getStoryMoralAudio(story.id) || `${story.moralGujarati}. ${story.moralEnglish}`,
+                        moralId,
+                        `${story.moralGujarati}. ${story.moralEnglish}`
+                      );
+                    }}
+                    currentlyPlaying={currentlyPlaying}
+                    ttsLoading={ttsLoading}
+                    ttsProgress={ttsProgress}
+                    failedId={failedId}
+                  />
+                )}
+              </div>
               <p className="rf-gujarati" style={{ marginTop: 4, fontSize: 'var(--t-lg)', fontWeight: 700 }}>
                 {story.moralGujarati}
               </p>

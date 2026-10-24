@@ -218,7 +218,7 @@ export function ChatSection() {
       const subject = msg.imagePrompt || 'the Gujarati learning illustration';
       const res = await fetch('/api/video', {
         method: 'POST',
-        headers: { 'x-venice-key': (window.getVeniceKey ? (window.getVeniceKey()||'') : ''), 'x-venice-key': (window.getVeniceKey ? (window.getVeniceKey()||'') : ''), 'Content-Type': 'application/json' },
+        headers: { 'x-venice-key': (window.getVeniceKey ? (window.getVeniceKey()||'') : ''), 'Content-Type': 'application/json' },
         body: JSON.stringify({
           imageUrl: imageSrc(msg.image),
           prompt: `A gentle Gujarati folk riso-style learning animation of ${subject}. Keep the full subject visible with generous padding, a light cream or white background, subtle friendly motion, no cropping, no new text, no watermark.`,
@@ -264,7 +264,7 @@ export function ChatSection() {
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'x-venice-key': (window.getVeniceKey ? (window.getVeniceKey()||'') : ''), 'x-venice-key': (window.getVeniceKey ? (window.getVeniceKey()||'') : ''), 'Content-Type': 'application/json' },
+        headers: { 'x-venice-key': (window.getVeniceKey ? (window.getVeniceKey()||'') : ''), 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: text, history, character }),
       });
       if (!res.ok || !res.body) throw new Error('Chat error');
@@ -301,7 +301,7 @@ export function ChatSection() {
         try {
           const imgRes = await fetch('/api/image', {
             method: 'POST',
-            headers: { 'x-venice-key': (window.getVeniceKey ? (window.getVeniceKey()||'') : ''), 'x-venice-key': (window.getVeniceKey ? (window.getVeniceKey()||'') : ''), 'Content-Type': 'application/json' },
+            headers: { 'x-venice-key': (window.getVeniceKey ? (window.getVeniceKey()||'') : ''), 'Content-Type': 'application/json' },
             body: JSON.stringify({ prompt: imagePrompt }),
           });
           if (imgRes.ok) {

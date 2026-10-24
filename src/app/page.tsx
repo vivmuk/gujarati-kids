@@ -6,6 +6,8 @@ import { WordsSection } from '@/components/WordsSection';
 import { PhrasesSection } from '@/components/PhrasesSection';
 import { StoriesSection } from '@/components/StoriesSection';
 import { QuizSection } from '@/components/QuizSection';
+import { ListenFind } from '@/components/ListenFind';
+import { playSfx } from '@/components/useSfx';
 import { ChatSection } from '@/components/ChatSection';
 import { SettingsSection } from '@/components/SettingsSection';
 import { BlockPrintBand, Guju, Starburst } from '@/components/RisoFolk';
@@ -15,7 +17,7 @@ import { useSpeak } from '@/components/useSpeak';
 import { swar, vyanjan, words, type LetterItem, type WordItem } from '@/data/gujarati';
 import { getLetterAudio, getLetterImage, getWordImage } from '@/data/assets';
 
-type TabId = 'home' | 'alphabet' | 'words' | 'phrases' | 'stories' | 'quiz' | 'chat' | 'progress';
+type TabId = 'home' | 'alphabet' | 'words' | 'phrases' | 'stories' | 'listen' | 'quiz' | 'chat' | 'progress';
 type LessonPointer = { type: 'letter' | 'word' | 'phrase' | 'story'; id: string };
 
 interface ProgressState {
@@ -50,6 +52,7 @@ const TAB_META: Record<TabId, { gu: string; en: string; icon: IconName }> = {
   words: { gu: 'શબ્દો', en: 'Words', icon: 'words' },
   phrases: { gu: 'વાક્યો', en: 'Phrases', icon: 'phrases' },
   stories: { gu: 'વાર્તા', en: 'Stories', icon: 'stories' },
+  listen: { gu: 'સાંભળો', en: 'Listen', icon: 'ear' },
   quiz: { gu: 'રમત', en: 'Play', icon: 'quiz' },
   chat: { gu: 'ગુજુ', en: 'Ask Guju', icon: 'spark' },
   progress: { gu: 'પ્રગતિ', en: 'Progress', icon: 'progress' },
@@ -60,16 +63,17 @@ const TAB_META: Record<TabId, { gu: string; en: string; icon: IconName }> = {
 const PHONE_TABS: TabId[] = ['home', 'alphabet', 'words', 'stories', 'quiz'];
 
 /** The full destination list, shown once there is room for it. */
-const ALL_TABS: TabId[] = ['home', 'alphabet', 'words', 'phrases', 'stories', 'quiz', 'chat', 'progress'];
+const ALL_TABS: TabId[] = ['home', 'alphabet', 'words', 'phrases', 'stories', 'listen', 'quiz', 'chat', 'progress'];
 
 /** Swipe order on touch devices. */
-const SWIPE_ORDER: TabId[] = ['home', 'alphabet', 'words', 'phrases', 'stories', 'quiz', 'chat'];
+const SWIPE_ORDER: TabId[] = ['home', 'alphabet', 'words', 'phrases', 'stories', 'listen', 'quiz', 'chat'];
 
 const SECTION_TILES: Array<{ id: TabId; sub: string }> = [
   { id: 'alphabet', sub: 'સ્વર · વ્યંજન · trace them' },
   { id: 'words', sub: '283 words · 10 groups' },
   { id: 'phrases', sub: 'Say it out loud' },
   { id: 'stories', sub: '48 stories · 9 rhymes' },
+  { id: 'listen', sub: 'Hear it · find it' },
   { id: 'quiz', sub: 'Play and win stars' },
   { id: 'chat', sub: 'Your Gujarati buddy' },
 ];
@@ -183,8 +187,13 @@ export default function GujaratiApp() {
     if (Math.abs(dx) < 60 || dy > Math.abs(dx) * 0.8) return;
     const index = SWIPE_ORDER.indexOf(activeTab);
     if (index < 0) return;
-    if (dx < 0 && index < SWIPE_ORDER.length - 1) setActiveTab(SWIPE_ORDER[index + 1]);
-    else if (dx > 0 && index > 0) setActiveTab(SWIPE_ORDER[index - 1]);
+    if (dx < 0 && index < SWIPE_ORDER.length - 1) {
+      playSfx('swipe');
+      setActiveTab(SWIPE_ORDER[index + 1]);
+    } else if (dx > 0 && index > 0) {
+      playSfx('swipe');
+      setActiveTab(SWIPE_ORDER[index - 1]);
+    }
   };
 
   // Each tab change pushes history so the platform back gesture pops in-app
@@ -356,11 +365,11 @@ export default function GujaratiApp() {
           role="button"
           tabIndex={0}
           aria-label={`Continue with the letter ${continueLetter.gujarati}`}
-          onClick={() => setActiveTab('alphabet')}
+          onClick={() => go('alphabet')}
           onKeyDown={event => {
             if (event.key === 'Enter' || event.key === ' ') {
               event.preventDefault();
-              setActiveTab('alphabet');
+              go('alphabet');
             }
           }}
           style={{
@@ -439,7 +448,7 @@ export default function GujaratiApp() {
                 <button
                   key={tile.id}
                   type="button"
-                  onClick={() => setActiveTab(tile.id)}
+                  onClick={() => go(tile.id)}
                   className={`rf-press rf-tile ${saffron ? 'rf-lift-indigo' : 'rf-lift-saffron'} relative overflow-hidden text-left`}
                   style={{
                     padding: 'var(--s-3) var(--s-4)',
@@ -483,7 +492,7 @@ export default function GujaratiApp() {
           {dailyWord ? (
             <button
               type="button"
-              onClick={() => setActiveTab('words')}
+              onClick={() => go('words')}
               className="rf-press rf-lift-saffron rf-surface flex w-full items-center text-left"
               style={{ gap: 'var(--s-3)', padding: 'var(--s-3)' }}
             >
@@ -520,7 +529,7 @@ export default function GujaratiApp() {
 
           <button
             type="button"
-            onClick={() => setActiveTab('progress')}
+            onClick={() => go('progress')}
             className="rf-press rf-lift-indigo rf-surface flex w-full items-center text-left"
             style={{ gap: 'var(--s-3)', padding: 'var(--s-3)' }}
           >
@@ -557,7 +566,7 @@ export default function GujaratiApp() {
                 <button
                   key={word.roman}
                   type="button"
-                  onClick={() => setActiveTab('words')}
+                  onClick={() => go('words')}
                   className={`rf-press rf-surface ${index % 2 === 0 ? 'rf-lift-saffron' : 'rf-lift-indigo'} flex flex-col items-center`}
                   style={{ width: 92, flex: 'none', gap: 4, padding: 'var(--s-2)' }}
                 >
@@ -606,6 +615,8 @@ export default function GujaratiApp() {
             onQuizComplete={recordQuiz}
           />
         );
+      case 'listen':
+        return <ListenFind onWordLearned={markWordLearned} />;
       case 'quiz':
         return <QuizSection onQuizComplete={recordQuiz} />;
       case 'chat':
@@ -613,6 +624,11 @@ export default function GujaratiApp() {
       case 'progress':
         return <SettingsSection progress={progress} />;
     }
+  };
+
+  const go = (tab: TabId) => {
+    if (tab !== activeTab) playSfx('tap');
+    setActiveTab(tab);
   };
 
   const meta = TAB_META[activeTab];
@@ -641,7 +657,7 @@ export default function GujaratiApp() {
               tab={tab}
               active={activeTab === tab}
               secondary={!PHONE_TABS.includes(tab)}
-              onSelect={setActiveTab}
+              onSelect={go}
             />
           ))}
         </div>
@@ -656,7 +672,7 @@ export default function GujaratiApp() {
           type="button"
           className="rf-guju-fab rf-no-print"
           aria-label="Ask Guju, your Gujarati tutor"
-          onClick={() => setActiveTab('chat')}
+          onClick={() => go('chat')}
         >
           <Guju size={26} sw={2.4} />
           <span>GUJU</span>
@@ -684,7 +700,7 @@ export default function GujaratiApp() {
             >
               <button
                 type="button"
-                onClick={() => setActiveTab('home')}
+                onClick={() => go('home')}
                 className="rf-btn rf-btn--quiet"
                 style={{ paddingLeft: 'var(--s-2)', paddingRight: 'var(--s-3)' }}
               >
@@ -704,7 +720,7 @@ export default function GujaratiApp() {
 
               <button
                 type="button"
-                onClick={() => setActiveTab('progress')}
+                onClick={() => go('progress')}
                 aria-label="Progress and settings"
                 aria-pressed={activeTab === 'progress'}
                 className="rf-icon-btn"

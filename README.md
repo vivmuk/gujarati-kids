@@ -35,11 +35,21 @@ had been making seven letters show the wrong picture and play the wrong sound.
 - **9 balgeet (nursery rhymes)** — ચક્કીબેન, એક બિલાડી જાડી, મામાનું ઘર કેટલે,
   હાથીભાઈ તો જાડા, આવ રે વરસાદ, વારતા રે વારતા, ચાંદો સૂરજ, અડકો દડકો, તાળી પાડો —
   each with a sing-along that highlights the line being sung
-- **Narrated story films**: a title shot, one animated shot per story line held
-  for exactly as long as its Gujarati narration, and a closing moral card
+- **Narrated story films for all 48 stories**: a riso title plate, a slow push
+  into each line's own illustration held for exactly as long as its narration,
+  and a closing moral plate read aloud in Gujarati and English
+- **A spoken moral** for every story — tap the speaker beside "What the story
+  teaches" to hear it
 - Comprehensible Input stories: understand Gujarati from context
 - Simple bilingual lines and clear morals for each lesson
 - Tap the story title or individual lines to hear audio
+
+### Listen & Find (સાંભળો · શોધો)
+- A pure ear game: a word is spoken, four pictures are shown, the child taps
+- **8 rounds** per game, filterable by word group
+- No captions until a second miss — the ear does the work, then the words appear
+- Same-group distractors, so a lion sits among animals rather than among fruits
+- Words found on the first try are stamped and counted as learned
 
 ### Quiz
 - Dynamic quiz generator for Letters, Words, and Phrases
@@ -53,6 +63,13 @@ had been making seven letters show the wrong picture and play the wrong sound.
 - **Voice output**: Tap 🔊 to hear Guju's responses
 - Learn about culture: Navratri, Uttarayan, Dhokla, Garba, and more
 - Starter and follow-up prompt chips that get gradually harder over the conversation
+
+### Sound
+- A small voice of its own: taps, right answers, gentle retries, a star and a
+  win — marimba, manjira and glockenspiel, generated in the same folk palette
+- **Songs carry a music bed**: one instrumental loop per nursery rhyme, held
+  well under the voice so the words stay the subject
+- A **Sounds** switch on Progress — a child can silence the whole app
 
 ### Progress
 - Track letters, words, phrases, and stories learned
@@ -82,6 +99,8 @@ Based on **Stephen Krashen's Natural Approach**:
   - **Chat**: `openai-gpt-4o-mini-2024-07-18` (fast bilingual tutor through Venice)
   - **Image Gen**: `grok-imagine-image-quality` (Riso-Folk Gujarati folk style, safe mode)
   - **Video Gen**: `seedance-2-0-fast-reference-to-video` (short square animations from generated lesson images)
+  - **Music**: `sonilo-v1-1-music` (story bed + one backing loop per rhyme)
+  - **Sound effects**: `elevenlabs-sound-effects-v2`
 - **Data**: 400+ curated Gujarati learning items, every one backed by a
   pre-generated audio file and illustration on disk
 
@@ -127,7 +146,18 @@ npx tsx scripts/generate-missing.mts --dry
 # Fill every gap — only writes files that do not exist, so rerunning is free
 npx tsx scripts/generate-missing.mts
 
-# Build a narrated film for a story (needs ffmpeg on PATH)
+# Fill only what Venice can fill: story morals, music beds, sound effects, art
+npx tsx scripts/venice-fill.mts tts      # spoken morals (pre-narrated, cheap)
+npx tsx scripts/venice-fill.mts music    # story bed + 9 rhyme beds
+npx tsx scripts/venice-fill.mts sfx      # taps, right/wrong, star, win
+npx tsx scripts/venice-fill.mts image    # new section art
+
+# Build every narrated story film locally — ffmpeg only, no API calls, resumable
+python3 scripts/build_films.py --list
+python3 scripts/build_films.py
+python3 scripts/add_beds.py              # lay the music bed under older films
+
+# Optional: buy per-shot animated clips instead of stills (paid, slow)
 npx tsx scripts/make-story-films.mts thirsty-crow hare-tortoise
 
 # Redraw the app icons, maskable icons, and the social card (no API calls)
@@ -163,6 +193,8 @@ src/
 │   ├── QuizSection.tsx         # Generated quiz, standard and timed
 │   ├── SettingsSection.tsx     # Progress, streak, Gujarat journey map
 │   ├── ChatSection.tsx         # Guju, the AI tutor
+│   ├── ListenFind.tsx          # Listen-then-find picture game
+│   ├── useSfx.ts               # The app's tap / right / star / win voice
 │   └── use*.ts                 # speak · pronunciation · word image · sing-along
 ├── data/
 │   ├── gujarati.ts             # All lesson data + quiz generators
@@ -172,13 +204,18 @@ src/
     └── streaks.ts              # Streak + belt tiers
 
 public/
-├── audio/                      # 760 pre-generated TTS files
+├── audio/                      # 800+ pre-generated clips: words, lines, morals,
+│                               #   music beds and sound effects
 ├── images/gen/                 # 715 generated illustrations
 ├── images/*.webp               # Category cover art
 ├── icons/                      # PWA + maskable + apple-touch icons
 └── videos/                     # Narrated story films
 
 scripts/
+├── build_films.py              # Every narrated film, built locally from art+audio
+├── add_beds.py                 # Music bed under films (stream copy, seconds)
+├── venice-fill.mts             # Morals, music beds, SFX, section art (resumable)
+├── export-stories.mts          # Story catalogue → JSON for the film builder
 ├── audit-assets.mts            # What is expected but missing on disk
 ├── generate-missing.mts        # Fill every audio/image gap (preferred)
 ├── make-story-films.mts        # Narrated, shot-by-shot story films

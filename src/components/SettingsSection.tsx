@@ -5,6 +5,7 @@ import { phrases, stories, swar, vyanjan, words } from '@/data/gujarati';
 import { days, getBeltForPercentage, updateStreak, type StreakData } from '@/lib/streaks';
 import { Icon, type IconName } from './Icon';
 import { Meter, SectionHeader } from './ui';
+import { useSfx } from './useSfx';
 import { GujaratMap, type MapCity } from './GujaratMap';
 
 interface ProgressState {
@@ -33,6 +34,7 @@ export function SettingsSection({ progress }: { progress: ProgressState }) {
       : updateStreak()
   );
   const [showDetails, setShowDetails] = useState(false);
+  const { enabled: soundOn, toggle: toggleSound, play: playSfx } = useSfx();
 
   const totals = {
     letters: swar.length + vyanjan.length,
@@ -151,6 +153,47 @@ export function SettingsSection({ progress }: { progress: ProgressState }) {
           max={100}
           label={`${Math.round(overall)} percent overall progress`}
         />
+      </div>
+
+      {/* Sound. A preference a child can reach, not a hidden device setting. */}
+      <div
+        className="rf-surface flex items-center justify-between"
+        style={{ padding: 'var(--s-4)', gap: 'var(--s-3)' }}
+      >
+        <div className="flex items-center" style={{ gap: 'var(--s-3)' }}>
+          <span
+            className="inline-flex items-center justify-center"
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 'var(--r-pill)',
+              background: soundOn ? 'var(--ink-saffron)' : 'var(--paper-sunk)',
+              color: soundOn ? 'var(--text-on-ink)' : 'var(--text-2)',
+              border: 'var(--key-thin)',
+            }}
+          >
+            <Icon name={soundOn ? 'speakerLoud' : 'speakerOff'} size={20} />
+          </span>
+          <div>
+            <p style={{ fontSize: 'var(--t-sm)', fontWeight: 700 }}>Sounds</p>
+            <p style={{ fontSize: 'var(--t-xs)', color: 'var(--text-2)' }}>
+              Taps, right answers, and the little celebrations.
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={soundOn}
+          aria-label="Sound effects"
+          className="rf-switch"
+          onClick={() => {
+            toggleSound();
+            if (!soundOn) playSfx('correct');
+          }}
+        >
+          <span className="rf-switch__knob" />
+        </button>
       </div>
 
       {/* Journey across Gujarat */}

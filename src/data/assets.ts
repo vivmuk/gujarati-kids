@@ -105,6 +105,11 @@ export function getStoryTitleAudio(storyId: string): string | undefined {
   return audioPaths[`story-${storyId}-title`];
 }
 
+/** The spoken "what the story teaches" line, written by scripts/venice-fill.mts. */
+export function getStoryMoralAudio(storyId: string): string | undefined {
+  return `/audio/story-${storyId}-moral.mp3`;
+}
+
 // Helper: get story hero image
 export function getStoryImage(storyId: string): string | undefined {
   return imagePaths[`story-${storyId}`];
@@ -136,23 +141,17 @@ export function getBalgeetImage(songId: string): string | undefined {
 }
 
 /* Story films ------------------------------------------------------------
- * Only some stories have a film. Listing them explicitly means the reader
- * shows a "make one" button straight away instead of mounting a <video> that
- * can only 404. Add an id here after running scripts/make-story-films.mts.
+ * Only stories with a file in public/videos are listed. The index is generated
+ * from disk by scripts/build_films.py, so the reader can offer the film
+ * straight away instead of mounting a <video> that can only 404.
  */
-export const STORY_FILMS = new Set<string>([
-  'dadi-dhokla',
-  'hare-tortoise',
-  'hungry-cat',
-  'kite-wind',
-  'lion-mouse',
-  'sun-moon',
-]);
+import { STORY_FILMS } from './filmIds';
+
+export { STORY_FILMS };
 
 export function hasStoryVideo(storyId: string): boolean {
   return STORY_FILMS.has(storyId);
 }
-
 export function getStoryVideo(storyId: string): string {
   return `/videos/story-${storyId}.mp4`;
 }

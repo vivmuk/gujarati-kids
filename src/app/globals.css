@@ -927,6 +927,145 @@ body {
   .rf-wordrow > * { width: auto !important; }
 }
 
+/* ------------------------------------------------- Listen & Find (game) ----
+   Four pictures, one spoken word. Tiles land like block prints being pulled:
+   each one rises and stamps into place, staggered so the eye reads them in
+   order. A right answer gets a star stamp; a wrong one shakes and dims but
+   stays tappable — nothing is ever taken away from the child. */
+
+.lf-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-3);
+}
+@media (min-width: 768px) {
+  .lf-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--s-4); }
+}
+
+.lf-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+  background: var(--paper);
+  border: var(--key);
+  border-radius: var(--r-md);
+  box-shadow: var(--lift-2) var(--ink-key);
+  cursor: pointer;
+  transition:
+    transform var(--dur-2) var(--ease),
+    box-shadow var(--dur-2) var(--ease),
+    opacity var(--dur-2) var(--ease);
+  animation: rf-pop var(--dur-3) var(--ease-out) both;
+}
+.lf-tile:nth-child(2) { animation-delay: 60ms; }
+.lf-tile:nth-child(3) { animation-delay: 120ms; }
+.lf-tile:nth-child(4) { animation-delay: 180ms; }
+
+.lf-tile:hover:not(:disabled) { transform: translate(-1px, -1px); box-shadow: var(--lift-3) var(--ink-key); }
+.lf-tile:active:not(:disabled) { transform: translate(2px, 2px); box-shadow: var(--lift-1) var(--ink-key); }
+.lf-tile:focus-visible { outline: 3px solid var(--ink-indigo); outline-offset: 3px; }
+.lf-tile:disabled { cursor: default; }
+
+.lf-tile__art {
+  display: block;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  background: var(--paper-sunk);
+}
+.lf-tile__art .rf-art { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.lf-tile__caption {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: var(--s-2);
+  background: var(--paper-cream);
+  border-top: var(--key-thin);
+  animation: rf-rise var(--dur-3) var(--ease-out) both;
+}
+
+/* Right answer: the plate turns leaf-green and a star stamps onto the corner. */
+.lf-tile--right {
+  box-shadow: var(--lift-2) var(--ink-leaf);
+  border-color: var(--state-learned);
+}
+.lf-tile--right .lf-tile__art { background: var(--state-learned-bg); }
+
+.lf-tile__stamp {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--r-pill);
+  background: var(--state-learned);
+  color: var(--text-on-ink);
+  border: var(--key-thin);
+  box-shadow: var(--lift-1) var(--ink-key);
+  animation: rf-stamp 380ms var(--ease-out) both;
+}
+
+/* Two misses and the answer offers itself, gently, without a buzzer. */
+.lf-tile--hint {
+  border-color: var(--ink-saffron);
+  animation: rf-pulse-ink 1.6s ease-in-out infinite;
+}
+
+/* Sound leaving the speaker button. */
+.lf-ring {
+  position: absolute;
+  inset: -6px;
+  border-radius: var(--r-pill);
+  border: 2.5px solid var(--ink-saffron);
+  opacity: 0;
+  animation: lf-ring 1.5s var(--ease-out) infinite;
+  pointer-events: none;
+}
+.lf-ring--late { animation-delay: 0.5s; }
+
+@keyframes lf-ring {
+  0% { transform: scale(0.92); opacity: 0.85; }
+  70% { opacity: 0.18; }
+  100% { transform: scale(1.55); opacity: 0; }
+}
+
+/* A switch in the same print language: the knob is a stamped disc that slides
+   and leaves its saffron pass behind it. */
+.rf-switch {
+  position: relative;
+  flex: 0 0 auto;
+  width: 58px;
+  height: 32px;
+  padding: 0;
+  border-radius: var(--r-pill);
+  border: var(--key-thin);
+  background: var(--paper-sunk);
+  cursor: pointer;
+  transition: background var(--dur-2) var(--ease);
+}
+.rf-switch[aria-checked='true'] { background: var(--ink-saffron); }
+.rf-switch__knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--r-pill);
+  background: var(--paper);
+  border: 2px solid var(--ink-key);
+  box-shadow: var(--lift-1) var(--ink-key);
+  transition: transform var(--dur-2) var(--ease-out);
+}
+.rf-switch[aria-checked='true'] .rf-switch__knob { transform: translateX(26px); }
+.rf-switch:focus-visible { outline: 3px solid var(--ink-indigo); outline-offset: 3px; }
+
 @media print {
   .rf-no-print { display: none !important; }
 }
